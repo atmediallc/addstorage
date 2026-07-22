@@ -191,11 +191,11 @@ model FileManagerFile {
 model Share {
   id          Int       @id @default(autoincrement())
   userId      Int       @map("user_id")
-  token       String    @unique
+  token       String    @unique @db.VarChar(16)
   itemId      Int       @map("item_id")
-  type        String    // file | folder
-  permission  String?   // view | edit
-  protected   Int       @default(0) // 0=public, 1=password-protected
+  type        String    // file | files | folder
+  permission  String?   // visitor | editor
+  protected   Boolean   @default(false)
   password    String?
   expireIn    Int?      @map("expire_in") // days until expiration
 
@@ -363,7 +363,8 @@ model FavouriteFolder {
 model Traffic {
   id        Int      @id @default(autoincrement())
   userId    Int      @map("user_id")
-  bytes     BigInt?
+  upload    BigInt   @default(0)
+  download  BigInt   @default(0)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
