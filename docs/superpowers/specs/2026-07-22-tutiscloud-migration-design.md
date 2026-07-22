@@ -129,20 +129,20 @@ model FileManagerFolder {
 
   // User scoping
   userId      Int?      @map("user_id")
-  userScope   String?   @map("user_scope") // master | editor | viewer
+  userScope   String    @default("master") @map("user_scope") // master | editor | viewer
 
-  // Folder customization
-  icon        String?
-  color       String?
+  // Folder customization (actual migration: icon_color + icon_emoji)
+  iconColor   String?   @map("icon_color")
+  iconEmoji   String?   @map("icon_emoji")
 
   deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  user            User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent          FileManagerFolder? @relation("FolderTree", fields: [parentId], references: [uniqueId])
-  children        FileManagerFolder[] @relation("FolderTree")
+  user            User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent          FileManagerFolder?  @relation("FolderTree", fields: [parentId], references: [uniqueId])
+  children        FileManagerFolder[]  @relation("FolderTree")
   files           FileManagerFile[]
   favourites      FavouriteFolder[]
   shares          Share[]
