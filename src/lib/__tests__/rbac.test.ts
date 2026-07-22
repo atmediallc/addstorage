@@ -77,7 +77,7 @@ describe('RBAC Ability Builder', () => {
 
   describe('role levels are ordered correctly', () => {
     it('master > admin > manager > editor > support > accountant > user > viewer', () => {
-      const roles = [
+      const roles: string[] = [
         'master',
         'admin',
         'manager',
@@ -88,8 +88,8 @@ describe('RBAC Ability Builder', () => {
         'viewer',
       ];
       for (let i = 0; i < roles.length - 1; i++) {
-        expect(ROLE_LEVELS[roles[i]]).toBeGreaterThan(
-          ROLE_LEVELS[roles[i + 1]],
+        expect(ROLE_LEVELS[roles[i]!]!).toBeGreaterThan(
+          ROLE_LEVELS[roles[i + 1]!]!,
         );
       }
     });

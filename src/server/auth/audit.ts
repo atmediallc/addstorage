@@ -41,7 +41,7 @@ export async function logAuditEvent(
         action,
         resource: resource ?? null,
         resourceId: resourceId ?? null,
-        metadata: metadata ?? undefined,
+        metadata: metadata != null ? JSON.parse(JSON.stringify(metadata)) : undefined,
       },
     });
   } catch (error) {
