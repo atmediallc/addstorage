@@ -1,8 +1,9 @@
+// src/server/trpc/root.ts
 import { router } from './index';
-import { placeholderRouter } from './routers/placeholder';
+import { authRouter } from './routers/auth';
 
 export const appRouter = router({
-  placeholder: placeholderRouter,
+  auth: authRouter,
 });
 
 export type AppRouter = typeof appRouter;

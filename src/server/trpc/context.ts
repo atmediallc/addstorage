@@ -1,3 +1,4 @@
+// src/server/trpc/context.ts
 import { db } from '@/server/db';
 import { auth } from '@/server/auth';
 
@@ -8,7 +9,7 @@ export async function createContext({ req }: { req: Request }) {
 
   return {
     db,
-    session,
+    session: session ?? null,
   };
 }
 
