@@ -2,21 +2,34 @@ import { z } from 'zod';
 
 // ─── Auth ───────────────────────────────────────────────────────
 
+const passwordValidation = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(
+    /[^A-Za-z0-9]/,
+    'Password must contain at least one special character',
+  );
+
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 export const registerSchema = z
   .object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    passwordConfirm: z.string(),
+    password: passwordValidation,
+    confirmPassword: z.string(),
+    acceptTerms: z.literal(true, 'You must accept the terms and conditions'),
   })
-  .refine((data) => data.password === data.passwordConfirm, {
+  .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
-    path: ['passwordConfirm'],
+    path: ['confirmPassword'],
   });
 
 export const forgotPasswordSchema = z.object({
@@ -25,13 +38,14 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z
   .object({
-    token: z.string(),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-    passwordConfirm: z.string(),
+    token: z.string().min(1, 'Token is required'),
+    email: z.string().email('Invalid email address'),
+    password: passwordValidation,
+    confirmPassword: z.string(),
   })
-  .refine((data) => data.password === data.passwordConfirm, {
+  .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
-    path: ['passwordConfirm'],
+    path: ['confirmPassword'],
   });
 
 // ─── File Operations ────────────────────────────────────────────
