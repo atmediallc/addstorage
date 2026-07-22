@@ -166,12 +166,10 @@ model FileManagerFile {
 
   // User scoping
   userId      Int?      @map("user_id")
-  userScope   String?   @map("user_scope") // master | editor | viewer
+  userScope   String    @default("master") @map("user_scope") // master | editor | viewer
 
-  // EXIF data
-  exifData        String? @map("exif_data")
-  exifLatitude    String? @map("exif_latitude")
-  exifLongitude   String? @map("exif_longitude")
+  // Metadata (actual migration: single metadata longText column, not separate exif columns)
+  metadata    String?   @db.LongText @map("metadata")
 
   deletedAt   DateTime? @map("deleted_at")
   createdAt   DateTime  @default(now()) @map("created_at")
