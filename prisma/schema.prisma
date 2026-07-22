@@ -24,6 +24,16 @@ model User {
 
   role String @default("master")
 
+  lastLoginAt         DateTime? @map("last_login_at")
+  lastActivityAt      DateTime? @map("last_activity_at")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  passwordChangedAt   DateTime? @map("password_changed_at")
+  deletedAt           DateTime? @map("deleted_at")
+  timezone            String?
+  locale              String?
+  twoFactorEnabled    Boolean   @default(false) @map("two_factor_enabled")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -35,6 +45,7 @@ model User {
   subscriptions    Subscription[]
   traffic          Traffic[]
   zips             Zip[]
+  auditLogs        AuditLog[]
 
   @@map("users")
 }
@@ -306,6 +317,25 @@ model Zip {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("zips")
+}
+
+// ─── Audit Log ────────────────────────────────────────────────
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  action     String
+  resource   String?
+  resourceId Int?     @map("resource_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 // ─── Queue Tracking ─────────────────────────────────────────────
