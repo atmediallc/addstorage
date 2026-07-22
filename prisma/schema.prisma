@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Users & Auth ───────────────────────────────────────────────
+
+model User {
+  id              Int       @id @default(autoincrement())
+  name            String
+  email           String    @unique
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  password        String
+  avatar          String?
+  rememberToken   String?   @map("remember_token")
+
+  stripeId     String?  @unique @map("stripe_id")
+  cardBrand    String?  @map("card_brand")
+  cardLastFour String?  @map("card_last_four") @db.VarChar(4)
+  trialEndsAt  DateTime? @map("trial_ends_at")
+
+  role String @default("master")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  files            FileManagerFile[]
+  folders          FileManagerFolder[]
+  settings         UserSettings?
+  favourites       FavouriteFolder[]
+  shares           Share[]
+  subscriptions    Subscription[]
+  traffic          Traffic[]
+  zips             Zip[]
+
+  @@map("users")
+}
+
+model PasswordReset {
+  email     String   @db.VarChar(255)
+  token     String   @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([email, token])
+  @@map("password_resets")
+}
+
+// ─── File Manager ───────────────────────────────────────────────
+
+model FileManagerFolder {
+  id       Int    @id @default(autoincrement())
+  uniqueId Int    @unique @map("unique_id")
+  parentId Int    @default(0) @map("parent_id")
+  name     String?
+  type     String?
+
+  userId    Int?   @map("user_id")
+  userScope String @default("master") @map("user_scope")
+
+  iconColor String? @map("icon_color")
+  iconEmoji String? @map("icon_emoji")
+
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user       User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     FileManagerFolder? @relation("FolderTree", fields: [parentId], references: [uniqueId])
+  children   FileManagerFolder[] @relation("FolderTree")
+  files      FileManagerFile[]
+  favourites FavouriteFolder[]
+  shares     Share[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@map("file_manager_folders")
+}
+
+model FileManagerFile {
+  id       Int    @id @default(autoincrement())
+  uniqueId Int    @unique @map("unique_id")
+  folderId Int    @default(0) @map("folder_id")
+  thumbnail String?
+  name     String?
+  basename String?
+  mimetype String?
+  filesize String?
+  type     String?
+
+  userId    Int?   @map("user_id")
+  userScope String @default("master") @map("user_scope")
+
+  metadata String?
+
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user   User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder FileManagerFolder? @relation(fields: [folderId], references: [uniqueId])
+  shares Share[]
+
+  @@index([userId])
+  @@index([folderId])
+  @@map("file_manager_files")
+}
+
+// ─── Sharing ────────────────────────────────────────────────────
+
+model Share {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  token      String   @unique @db.VarChar(16)
+  itemId     Int      @map("item_id")
+  type       String
+  permission String?
+  protected  Boolean  @default(false)
+  password   String?
+  expireIn   Int?     @map("expire_in")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file   FileManagerFile?   @relation(fields: [itemId], references: [uniqueId], map: "shares_file_id_fkey")
+  folder FileManagerFolder? @relation(fields: [itemId], references: [uniqueId], map: "shares_folder_id_fkey")
+
+  @@index([userId])
+  @@index([token])
+  @@map("shares")
+}
+
+// ─── Subscriptions ──────────────────────────────────────────────
+
+model Subscription {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  name         String
+  stripeId     String    @map("stripe_id")
+  stripeStatus String    @map("stripe_status")
+  stripePlan   String?   @map("stripe_plan")
+  quantity     Int?
+  trialEndsAt  DateTime? @map("trial_ends_at")
+  endsAt       DateTime? @map("ends_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items SubscriptionItem[]
+
+  @@index([userId, stripeStatus])
+  @@map("subscriptions")
+}
+
+model SubscriptionItem {
+  id             Int    @id @default(autoincrement())
+  subscriptionId Int    @map("subscription_id")
+  stripeId       String @map("stripe_id")
+  stripePlan     String @map("stripe_plan")
+  quantity       Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, stripePlan])
+  @@map("subscription_items")
+}
+
+// ─── User Settings ──────────────────────────────────────────────
+
+model UserSettings {
+  id                 Int     @id @default(autoincrement())
+  userId             Int     @unique @map("user_id")
+  storageCapacity    Int     @default(5) @map("storage_capacity")
+  billingName        String? @map("billing_name")
+  billingAddress     String? @map("billing_address")
+  billingState       String? @map("billing_state")
+  billingCity        String? @map("billing_city")
+  billingPostalCode  String? @map("billing_postal_code")
+  billingCountry     String? @map("billing_country")
+  billingPhoneNumber String? @map("billing_phone_number")
+  timezone           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+// ─── App Settings ───────────────────────────────────────────────
+
+model Setting {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique
+  value String?
+
+  @@map("settings")
+}
+
+// ─── CMS Pages ──────────────────────────────────────────────────
+
+model Page {
+  id         Int      @id @default(autoincrement())
+  visibility Boolean  @default(true)
+  title      String
+  slug       String   @unique
+  content    String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("pages")
+}
+
+// ─── Payment Gateways ──────────────────────────────────────────
+
+model PaymentGateway {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  slug      String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("payment_gateways")
+}
+
+// ─── Localization ───────────────────────────────────────────────
+
+model Language {
+  id     String @id @default(uuid())
+  name   String
+  locale String @unique
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  strings LanguageString[]
+
+  @@map("languages")
+}
+
+model LanguageString {
+  id         Int    @id @default(autoincrement())
+  languageId String @map("language_id")
+  key        String
+  value      String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@index([languageId])
+  @@map("language_strings")
+}
+
+// ─── Favourites ─────────────────────────────────────────────────
+
+model FavouriteFolder {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  folderUniqueId Int      @map("folder_unique_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder FileManagerFolder @relation(fields: [folderUniqueId], references: [uniqueId], onDelete: Cascade)
+
+  @@unique([userId, folderUniqueId])
+  @@map("favourite_folders")
+}
+
+// ─── Traffic & Zips ────────────────────────────────────────────
+
+model Traffic {
+  id       Int     @id @default(autoincrement())
+  userId   Int     @map("user_id")
+  upload   BigInt  @default(0)
+  download BigInt  @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("traffic")
+}
+
+model Zip {
+  id          String  @id @default(uuid())
+  userId      Int     @map("user_id")
+  sharedToken String? @map("shared_token")
+  basename    String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("zips")
+}
+
+// ─── Queue Tracking ─────────────────────────────────────────────
+
+model FailedJob {
+  id         Int      @id @default(autoincrement())
+  connection String
+  queue      String
+  payload    String
+  exception  String
+  failedAt   DateTime @map("failed_at")
+
+  @@map("failed_jobs")
+}
