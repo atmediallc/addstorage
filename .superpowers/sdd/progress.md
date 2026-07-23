@@ -30,3 +30,11 @@
 - [x] Task 10: Unit Tests for File Manager (commits 32613bd, 46 tests passing)
 - [x] Task 11: E2E Test — File Manager Flows (commits 086b93b)
 - [x] Task 12: Final Integration Check — all checks pass
+
+# Phase 3B Progress Ledger
+
+- [x] Task 1: Trash View + Procedures (commits 207ea44)
+- [x] Task 2: Favourites (commits 207ea44)
+- [x] Task 3: Search (commits 207ea44)
+- [x] Task 4: Bulk Operations (commits 207ea44)
+- [x] Task 5: Final Integration Check — all checks pass (46 tests, TSC clean)
