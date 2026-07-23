@@ -76,3 +76,8 @@
 
 - [x] Task 1: Public Pricing Page (commits afaf237)
 - [x] Task 2: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 8 Progress Ledger
+
+- [x] Task 1: Setup Wizard Multi-Step Form (commits 7a90f2b)
+- [x] Task 2: Final Integration Check — all checks pass (46 tests, TSC clean)
