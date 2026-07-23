@@ -4,9 +4,12 @@
 import { useAuth } from '@/hooks/use-auth';
 import { can } from '@/server/auth/rbac/ability';
 import { UnverifiedBanner } from '@/components/auth/unverified-banner';
+import { useTheme } from '@/components/theme-provider';
+import { Sun, Moon, Monitor } from 'lucide-react';
 
 export function Header() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   if (!isAuthenticated || !user) return null;
 
@@ -21,8 +24,8 @@ export function Header() {
   return (
     <>
       <UnverifiedBanner />
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
-        <a href="/files" className="text-lg font-bold text-gray-900">
+      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3 dark:border-gray-700 dark:bg-gray-900">
+        <a href="/files" className="text-lg font-bold text-gray-900 dark:text-white">
           TutisCloud
         </a>
 
@@ -35,6 +38,21 @@ export function Header() {
               Admin
             </a>
           )}
+
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light')}
+            className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            title={`Current: ${theme}`}
+          >
+            {theme === 'dark' ? (
+              <Moon className="h-5 w-5" />
+            ) : theme === 'system' ? (
+              <Monitor className="h-5 w-5" />
+            ) : (
+              <Sun className="h-5 w-5" />
+            )}
+          </button>
 
           <div className="relative group">
             <button className="flex items-center gap-2 rounded-md p-1.5 hover:bg-gray-100">
@@ -55,25 +73,25 @@ export function Header() {
               </div>
             </button>
 
-            <div className="invisible absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg group-hover:visible">
-              <div className="border-b px-3 py-2">
-                <div className="text-sm font-medium text-gray-900">
+            <div className="invisible absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg group-hover:visible dark:border-gray-700 dark:bg-gray-900">
+              <div className="border-b border-gray-200 px-3 py-2 dark:border-gray-700">
+                <div className="text-sm font-medium text-gray-900 dark:text-white">
                   {user.name}
                 </div>
-                <div className="text-xs text-gray-500">{user.email}</div>
-                <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 capitalize">
+                <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
+                <span className="mt-1 inline-block rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 capitalize dark:bg-gray-800 dark:text-gray-300">
                   {user.role}
                 </span>
               </div>
               <a
                 href="/settings"
-                className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 Settings
               </a>
               <a
                 href="/settings/sessions"
-                className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
               >
                 Sessions
               </a>
