@@ -596,4 +596,50 @@ export const filesRouter = router({
 
       return { url, name: file.name };
     }),
+
+  // ─── Bulk Move ─────────────────────────────────────────────────
+  moveItems: protectedProcedure
+    .input(z.object({
+      folderIds: z.array(z.number()).default([]),
+      fileIds: z.array(z.number()).default([]),
+      targetFolderId: z.number(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Move folders
+      if (input.folderIds.length > 0) {
+        await ctx.db.fileManagerFolder.updateMany({
+          where: { uniqueId: { in: input.folderIds } },
+          data: { parentId: input.targetFolderId },
+        });
+      }
+
+      // Move files
+      if (input.fileIds.length > 0) {
+        await ctx.db.fileManagerFile.updateMany({
+          where: { uniqueId: { in: input.fileIds } },
+          data: { folderId: input.targetFolderId },
+        });
+      }
+
+      return { moved: input.folderIds.length + input.fileIds.length };
+    }),
+
+  // ─── Bulk Delete ───────────────────────────────────────────────
+  deleteFiles: protectedProcedure
+    .input(z.object({ ids: z.array(z.number()) }))
+    .mutation(async ({ ctx, input }) => {
+      // Soft-delete files
+      await ctx.db.fileManagerFile.updateMany({
+        where: { uniqueId: { in: input.ids } },
+        data: { deletedAt: new Date() },
+      });
+
+      // Soft-delete folders
+      await ctx.db.fileManagerFolder.updateMany({
+        where: { uniqueId: { in: input.ids } },
+        data: { deletedAt: new Date() },
+      });
+
+      return { deleted: input.ids.length };
+    }),
 });
