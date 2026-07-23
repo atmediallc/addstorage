@@ -1,4 +1,5 @@
 import { Header } from '@/components/layout/header';
+import { StorageQuota } from '@/components/file-manager/StorageQuota';
 
 export default function DashboardLayout({
   children,
@@ -30,6 +31,7 @@ export default function DashboardLayout({
               Settings
             </a>
           </nav>
+          <StorageQuota />
         </aside>
         <main className="flex-1 p-6">{children}</main>
       </div>
