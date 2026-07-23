@@ -19,10 +19,22 @@ export default function DashboardLayout({
               Files
             </a>
             <a
+              href="/favourites"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Favourites
+            </a>
+            <a
               href="/shared"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Shared
+            </a>
+            <a
+              href="/trash"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Trash
             </a>
             <a
               href="/settings"

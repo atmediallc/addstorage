@@ -204,3 +204,12 @@ export const searchSchema = z.object({
   query: z.string().min(1).max(255),
   parentId: z.number().optional(),
 });
+
+// ─── Trash ──────────────────────────────────────────────────────
+
+export const trashItemSchema = z.object({
+  uniqueId: z.number(),
+  type: z.enum(['file', 'folder']),
+});
+
+export const emptyTrashSchema = z.object({});

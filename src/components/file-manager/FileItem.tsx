@@ -7,6 +7,7 @@ import { ItemContextMenu } from './ItemContextMenu';
 import { RenameDialog } from './RenameDialog';
 import { DeleteDialog } from './DeleteDialog';
 import { PreviewModal } from './PreviewModal';
+import { FavouriteButton } from './FavouriteButton';
 import { trpc } from '@/lib/trpc';
 import { Folder, File } from 'lucide-react';
 
@@ -93,6 +94,7 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
     >
       {type === 'folder' ? <Folder className="h-12 w-12 text-yellow-500" /> : <File className="h-12 w-12 text-gray-400" />}
       <span className="w-full truncate text-center text-sm">{item.name ?? 'Unnamed'}</span>
+      {type === 'folder' && <FavouriteButton folderId={item.uniqueId} />}
     </div>
   ) : (
     <tr

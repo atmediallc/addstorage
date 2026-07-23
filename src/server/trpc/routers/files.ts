@@ -270,4 +270,181 @@ export const filesRouter = router({
       const files = await ctx.db.fileManagerFile.findMany({ where, orderBy: { name: 'asc' } });
       return files;
     }),
+
+  // ─── Trash ──────────────────────────────────────────────────────
+  listTrash: protectedProcedure.query(async ({ ctx }) => {
+    const folders = await ctx.db.fileManagerFolder.findMany({
+      where: { userId: Number(ctx.session.user.id), deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+    });
+    const files = await ctx.db.fileManagerFile.findMany({
+      where: { userId: Number(ctx.session.user.id), deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+    });
+    return { folders, files };
+  }),
+
+  restoreItem: protectedProcedure
+    .input(z.object({ uniqueId: z.number(), type: z.enum(['file', 'folder']) }))
+    .mutation(async ({ ctx, input }) => {
+      if (input.type === 'folder') {
+        await ctx.db.fileManagerFolder.update({
+          where: { uniqueId: input.uniqueId },
+          data: { deletedAt: null },
+        });
+      } else {
+        await ctx.db.fileManagerFile.update({
+          where: { uniqueId: input.uniqueId },
+          data: { deletedAt: null },
+        });
+      }
+      return { success: true };
+    }),
+
+  permanentDelete: protectedProcedure
+    .input(z.object({ uniqueId: z.number(), type: z.enum(['file', 'folder']) }))
+    .mutation(async ({ ctx, input }) => {
+      if (input.type === 'file') {
+        const file = await ctx.db.fileManagerFile.findFirst({
+          where: { uniqueId: input.uniqueId },
+        });
+        if (file) {
+          const { getS3Key, deleteObject } = await import('@/lib/s3');
+          const key = getS3Key(Number(ctx.session.user.id), file.uniqueId, file.basename ?? file.name ?? 'unknown');
+          await deleteObject(key);
+        }
+        await ctx.db.fileManagerFile.delete({ where: { uniqueId: input.uniqueId } });
+      } else {
+        const files = await ctx.db.fileManagerFile.findMany({ where: { folderId: input.uniqueId } });
+        const { getS3Key, deleteObject } = await import('@/lib/s3');
+        for (const file of files) {
+          const key = getS3Key(Number(ctx.session.user.id), file.uniqueId, file.basename ?? file.name ?? 'unknown');
+          await deleteObject(key);
+          await ctx.db.fileManagerFile.delete({ where: { uniqueId: file.uniqueId } });
+        }
+        await ctx.db.fileManagerFolder.delete({ where: { uniqueId: input.uniqueId } });
+      }
+      return { success: true };
+    }),
+
+  emptyTrash: protectedProcedure
+    .input(z.object({}))
+    .mutation(async ({ ctx }) => {
+      const files = await ctx.db.fileManagerFile.findMany({
+        where: { userId: Number(ctx.session.user.id), deletedAt: { not: null } },
+      });
+      const { getS3Key, deleteObject } = await import('@/lib/s3');
+      for (const file of files) {
+        const key = getS3Key(Number(ctx.session.user.id), file.uniqueId, file.basename ?? file.name ?? 'unknown');
+        await deleteObject(key);
+        await ctx.db.fileManagerFile.delete({ where: { uniqueId: file.uniqueId } });
+      }
+      await ctx.db.fileManagerFolder.deleteMany({
+        where: { userId: Number(ctx.session.user.id), deletedAt: { not: null } },
+      });
+      return { success: true };
+    }),
+
+  // ─── Favourites ──────────────────────────────────────────────────
+  toggleFavourite: protectedProcedure
+    .input(z.object({ folderId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db.favouriteFolder.findUnique({
+        where: {
+          userId_folderUniqueId: {
+            userId: Number(ctx.session.user.id),
+            folderUniqueId: input.folderId,
+          },
+        },
+      });
+      if (existing) {
+        await ctx.db.favouriteFolder.delete({
+          where: {
+            userId_folderUniqueId: {
+              userId: Number(ctx.session.user.id),
+              folderUniqueId: input.folderId,
+            },
+          },
+        });
+        return { favourited: false };
+      }
+      await ctx.db.favouriteFolder.create({
+        data: {
+          userId: Number(ctx.session.user.id),
+          folderUniqueId: input.folderId,
+        },
+      });
+      return { favourited: true };
+    }),
+
+  listFavourites: protectedProcedure.query(async ({ ctx }) => {
+    const favourites = await ctx.db.favouriteFolder.findMany({
+      where: { userId: Number(ctx.session.user.id) },
+      include: { folder: true },
+    });
+    return favourites.map(f => f.folder);
+  }),
+
+  isFavourited: protectedProcedure
+    .input(z.object({ folderId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const exists = await ctx.db.favouriteFolder.findUnique({
+        where: {
+          userId_folderUniqueId: {
+            userId: Number(ctx.session.user.id),
+            folderUniqueId: input.folderId,
+          },
+        },
+      });
+      return !!exists;
+    }),
+
+  // ─── Bulk Operations ─────────────────────────────────────────────
+  bulkMove: protectedProcedure
+    .input(z.object({
+      ids: z.array(z.number()).min(1).max(100),
+      type: z.enum(['file', 'folder']),
+      toFolderId: z.number(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      for (const id of input.ids) {
+        if (input.type === 'folder') {
+          await ctx.db.fileManagerFolder.update({
+            where: { uniqueId: id },
+            data: { parentId: input.toFolderId },
+          });
+        } else {
+          await ctx.db.fileManagerFile.update({
+            where: { uniqueId: id },
+            data: { folderId: input.toFolderId },
+          });
+        }
+      }
+      return { moved: input.ids.length };
+    }),
+
+  bulkDelete: protectedProcedure
+    .input(z.object({
+      items: z.array(z.object({
+        uniqueId: z.number(),
+        type: z.enum(['file', 'folder']),
+      })).min(1).max(100),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const now = new Date();
+      for (const item of input.items) {
+        if (item.type === 'folder') {
+          await ctx.db.fileManagerFolder.update({
+            where: { uniqueId: item.uniqueId },
+            data: { deletedAt: now },
+          });
+        } else {
+          await ctx.db.fileManagerFile.update({
+            where: { uniqueId: item.uniqueId },
+            data: { deletedAt: now },
+          });
+        }
+      }
+      return { deleted: input.items.length };
+    }),
 });
