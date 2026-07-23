@@ -106,3 +106,10 @@
 - [x] Task 2: MoveDialog (commits 77d75f4)
 - [x] Task 3: Bulk Delete/Favourite (commits 77d75f4)
 - [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 13 Progress Ledger
+
+- [x] Task 1: Shared Links Page (commits bed68f8)
+- [x] Task 2: Public Share Access Route (commits bed68f8)
+- [x] Task 3: Download Tracking & Stats (commits bed68f8)
+- [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
