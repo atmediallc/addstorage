@@ -94,9 +94,18 @@ export const filesRouter = router({
     .input(z.object({ uniqueId: z.number(), toFolderId: z.number(), type: z.enum(['file', 'folder']) }))
     .mutation(async ({ ctx, input }) => {
       if (input.type === 'folder') {
-        // Prevent moving folder into itself
-        if (input.uniqueId === input.toFolderId) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cannot move folder into itself' });
+        // Cycle detection: walk up from toFolderId to root, ensure uniqueId is not an ancestor
+        let currentParent = input.toFolderId;
+        while (currentParent !== 0) {
+          if (currentParent === input.uniqueId) {
+            throw new TRPCError({ code: 'BAD_REQUEST', message: 'Cannot move folder into its own descendant' });
+          }
+          const parent = await ctx.db.fileManagerFolder.findFirst({
+            where: { uniqueId: currentParent },
+            select: { parentId: true },
+          });
+          if (!parent) break;
+          currentParent = parent.parentId;
         }
         const folder = await ctx.db.fileManagerFolder.update({
           where: { uniqueId: input.uniqueId },

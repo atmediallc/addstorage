@@ -1,7 +1,7 @@
 // src/components/file-manager/FileItem.tsx
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type DragEvent } from 'react';
 import { useFileManager } from './FileManagerContext';
 import { ItemContextMenu } from './ItemContextMenu';
 import { RenameDialog } from './RenameDialog';
