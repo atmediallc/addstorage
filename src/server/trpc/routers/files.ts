@@ -1,8 +1,9 @@
 // src/server/trpc/routers/files.ts
 import { router } from '../index';
-import { protectedProcedure } from '../procedures';
+import { protectedProcedure, publicProcedure } from '../procedures';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { randomBytes } from 'crypto';
 
 export const filesRouter = router({
   // ─── Folders ────────────────────────────────────────────────────
@@ -446,5 +447,153 @@ export const filesRouter = router({
         }
       }
       return { deleted: input.items.length };
+    }),
+
+  // ─── Sharing ────────────────────────────────────────────────────
+  createShare: protectedProcedure
+    .input(z.object({
+      itemId: z.number(),
+      type: z.enum(['file', 'folder']),
+      permission: z.enum(['visitor', 'editor']).optional(),
+      protected: z.boolean().optional(),
+      password: z.string().optional(),
+      expireIn: z.number().optional(), // hours
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const token = randomBytes(8).toString('hex').slice(0, 16);
+      const share = await ctx.db.share.create({
+        data: {
+          userId: Number(ctx.session.user.id),
+          token,
+          itemId: input.itemId,
+          type: input.type,
+          permission: input.permission ?? 'visitor',
+          protected: input.protected ?? false,
+          password: input.password, // TODO: hash with bcrypt
+          expireIn: input.expireIn,
+        },
+      });
+      return { share, url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/s/${token}` };
+    }),
+
+  listShares: protectedProcedure.query(async ({ ctx }) => {
+    const shares = await ctx.db.share.findMany({
+      where: { userId: Number(ctx.session.user.id) },
+      orderBy: { createdAt: 'desc' },
+    });
+    return shares;
+  }),
+
+  deleteShare: protectedProcedure
+    .input(z.object({ shareId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.share.delete({
+        where: { id: input.shareId, userId: Number(ctx.session.user.id) },
+      });
+      return { success: true };
+    }),
+
+  updateShare: protectedProcedure
+    .input(z.object({
+      shareId: z.number(),
+      permission: z.enum(['visitor', 'editor']).optional(),
+      protected: z.boolean().optional(),
+      password: z.string().optional(),
+      expireIn: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const share = await ctx.db.share.update({
+        where: { id: input.shareId, userId: Number(ctx.session.user.id) },
+        data: {
+          ...(input.permission && { permission: input.permission }),
+          ...(input.protected !== undefined && { protected: input.protected }),
+          ...(input.password !== undefined && { password: input.password }),
+          ...(input.expireIn !== undefined && { expireIn: input.expireIn }),
+        },
+      });
+      return { share };
+    }),
+
+  getShareContent: publicProcedure
+    .input(z.object({ token: z.string(), password: z.string().optional() }))
+    .query(async ({ ctx, input }) => {
+      const share = await ctx.db.share.findUnique({
+        where: { token: input.token },
+      });
+      if (!share) throw new TRPCError({ code: 'NOT_FOUND', message: 'Share not found' });
+
+      // Check expiration
+      if (share.expireIn) {
+        const expiresAt = new Date(share.createdAt);
+        expiresAt.setHours(expiresAt.getHours() + share.expireIn);
+        if (new Date() > expiresAt) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'This link has expired' });
+        }
+      }
+
+      // Check password
+      if (share.protected && share.password) {
+        if (!input.password || input.password !== share.password) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Password required' });
+        }
+      }
+
+      // Get content
+      if (share.type === 'folder') {
+        const folder = await ctx.db.fileManagerFolder.findUnique({
+          where: { uniqueId: share.itemId },
+        });
+        const files = await ctx.db.fileManagerFile.findMany({
+          where: { folderId: share.itemId, deletedAt: null },
+        });
+        const folders = await ctx.db.fileManagerFolder.findMany({
+          where: { parentId: share.itemId, deletedAt: null },
+        });
+        return { share, folder, files, folders };
+      } else {
+        const file = await ctx.db.fileManagerFile.findUnique({
+          where: { uniqueId: share.itemId },
+        });
+        return { share, file, files: file ? [file] : [], folders: [] };
+      }
+    }),
+
+  getShareDownloadUrl: publicProcedure
+    .input(z.object({ token: z.string(), fileId: z.number().optional() }))
+    .query(async ({ ctx, input }) => {
+      const share = await ctx.db.share.findUnique({
+        where: { token: input.token },
+      });
+      if (!share) throw new TRPCError({ code: 'NOT_FOUND', message: 'Share not found' });
+
+      // Check expiration
+      if (share.expireIn) {
+        const expiresAt = new Date(share.createdAt);
+        expiresAt.setHours(expiresAt.getHours() + share.expireIn);
+        if (new Date() > expiresAt) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'This link has expired' });
+        }
+      }
+
+      const fileId = input.fileId ?? share.itemId;
+      const file = await ctx.db.fileManagerFile.findUnique({
+        where: { uniqueId: fileId },
+      });
+      if (!file) throw new TRPCError({ code: 'NOT_FOUND', message: 'File not found' });
+
+      const { getS3Key, getPresignedDownloadUrl } = await import('@/lib/s3');
+      const key = getS3Key(file.userId ?? 0, file.uniqueId, file.basename ?? file.name ?? 'unknown');
+      const url = await getPresignedDownloadUrl(key, 300);
+
+      // Track download in traffic table
+      await ctx.db.traffic.create({
+        data: {
+          userId: file.userId ?? 0,
+          upload: 0,
+          download: Number(file.filesize ?? '0'),
+        },
+      });
+
+      return { url, name: file.name };
     }),
 });

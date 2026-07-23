@@ -7,7 +7,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
-import { Eye, Pencil, Trash2, Download, FolderOpen } from 'lucide-react';
+import { Eye, Pencil, Trash2, Download, FolderOpen, Share2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface ItemContextMenuProps {
@@ -18,6 +18,7 @@ interface ItemContextMenuProps {
   onDelete?: () => void;
   onPreview?: () => void;
   onDownload?: () => void;
+  onShare?: () => void;
 }
 
 export function ItemContextMenu({
@@ -28,6 +29,7 @@ export function ItemContextMenu({
   onDelete,
   onPreview,
   onDownload,
+  onShare,
 }: ItemContextMenuProps) {
   return (
     <ContextMenu>
@@ -48,6 +50,11 @@ export function ItemContextMenu({
         <ContextMenuItem onClick={onDownload}>
           <Download className="mr-2 h-4 w-4" />
           Download
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={onShare}>
+          <Share2 className="mr-2 h-4 w-4" />
+          Share
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={onRename}>

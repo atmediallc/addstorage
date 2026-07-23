@@ -8,6 +8,7 @@ import { RenameDialog } from './RenameDialog';
 import { DeleteDialog } from './DeleteDialog';
 import { PreviewModal } from './PreviewModal';
 import { FavouriteButton } from './FavouriteButton';
+import { ShareDialog } from './ShareDialog';
 import { trpc } from '@/lib/trpc';
 import { Folder, File } from 'lucide-react';
 
@@ -22,6 +23,7 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [previewData, setPreviewData] = useState<{ url: string; mimetype: string | null } | null>(null);
   const utils = trpc.useUtils();
 
@@ -124,6 +126,7 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
         onDelete={() => setShowDelete(true)}
         onPreview={type === 'file' ? handlePreview : undefined}
         onDownload={type === 'file' ? handleDownload : undefined}
+        onShare={() => setShowShare(true)}
       >
         {itemContent}
       </ItemContextMenu>
@@ -150,6 +153,13 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
           mimetype={previewData.mimetype}
         />
       )}
+      <ShareDialog
+        open={showShare}
+        onOpenChange={setShowShare}
+        itemId={item.uniqueId}
+        type={type}
+        itemName={item.name ?? 'Unnamed'}
+      />
     </>
   );
 }
