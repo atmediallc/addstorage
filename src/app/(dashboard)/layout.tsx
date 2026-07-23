@@ -37,6 +37,12 @@ export default function DashboardLayout({
               Trash
             </a>
             <a
+              href="/billing"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Billing
+            </a>
+            <a
               href="/settings"
               className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
