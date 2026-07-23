@@ -42,6 +42,13 @@ export default function DashboardLayout({
             >
               Settings
             </a>
+            <div className="my-2 border-t border-gray-200" />
+            <a
+              href="/admin"
+              className="block rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+            >
+              Admin
+            </a>
           </nav>
           <StorageQuota />
         </aside>
