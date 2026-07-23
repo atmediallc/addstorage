@@ -99,3 +99,10 @@
 - [x] Task 2: Notification Bell Component (commits e9be792)
 - [x] Task 3: Activity Feed Page (commits e9be792)
 - [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 12 Progress Ledger
+
+- [x] Task 1: Functional Bulk Actions (commits 77d75f4)
+- [x] Task 2: MoveDialog (commits 77d75f4)
+- [x] Task 3: Bulk Delete/Favourite (commits 77d75f4)
+- [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
