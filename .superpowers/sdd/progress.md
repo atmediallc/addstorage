@@ -38,3 +38,9 @@
 - [x] Task 3: Search (commits 207ea44)
 - [x] Task 4: Bulk Operations (commits 207ea44)
 - [x] Task 5: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 3C Progress Ledger
+
+- [x] Task 1: Share Procedures + ShareDialog (commits 62fb377)
+- [x] Task 2: Public Share Page (commits 62fb377)
+- [x] Task 3: Final Integration Check — all checks pass (46 tests, TSC clean)
