@@ -51,8 +51,43 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
 
   const isSelected = selectedItems.has(item.uniqueId);
 
+  const moveItem = trpc.files.moveItem.useMutation({
+    onSuccess: () => {
+      utils.files.listFolders.invalidate();
+      utils.files.listFiles.invalidate();
+    },
+  });
+
+  const handleDragStart = (e: DragEvent) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({ uniqueId: item.uniqueId, type }));
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    if (type === 'folder') {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    if (type !== 'folder') return;
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json')) as { uniqueId: number; type: 'file' | 'folder' };
+      if (data.uniqueId !== item.uniqueId) {
+        moveItem.mutate({ uniqueId: data.uniqueId, toFolderId: item.uniqueId, type: data.type });
+      }
+    } catch {
+      // invalid drag data
+    }
+  };
+
   const itemContent = viewMode === 'grid' ? (
     <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       onClick={handleClick}
       className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition-colors cursor-pointer hover:bg-gray-50 ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
     >
@@ -60,7 +95,14 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
       <span className="w-full truncate text-center text-sm">{item.name ?? 'Unnamed'}</span>
     </div>
   ) : (
-    <tr onClick={handleClick} className={`cursor-pointer border-b hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}>
+    <tr
+      draggable
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onClick={handleClick}
+      className={`cursor-pointer border-b hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}
+    >
       <td className="flex items-center gap-2 py-2 pr-4">
         {type === 'folder' ? <Folder className="h-4 w-4 text-yellow-500" /> : <File className="h-4 w-4 text-gray-400" />}
         <span className="truncate">{item.name ?? 'Unnamed'}</span>
