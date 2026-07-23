@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   '/verify-email',
   '/pricing',
   '/setup',
+  '/s',
 ];
 
 export function middleware(request: NextRequest) {
