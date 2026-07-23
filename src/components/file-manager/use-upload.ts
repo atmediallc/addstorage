@@ -18,6 +18,22 @@ export function useUpload() {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const utils = trpc.useUtils();
 
+  const confirmUploadMutation = trpc.files.confirmUpload.useMutation({
+    onSuccess: () => {
+      utils.files.listFiles.invalidate();
+      utils.files.listFolders.invalidate();
+    },
+  });
+
+  const getPresignedUrlMutation = trpc.files.getPresignedUrl.useMutation();
+
+  const createFileMutation = trpc.files.createFile.useMutation({
+    onSuccess: () => {
+      utils.files.listFiles.invalidate();
+      utils.files.listFolders.invalidate();
+    },
+  });
+
   const updateUpload = useCallback((id: string, update: Partial<UploadItem>) => {
     setUploads((prev) =>
       prev.map((u) => (u.id === id ? { ...u, ...update } : u)),
@@ -50,9 +66,6 @@ export function useUpload() {
             await uploadViaServerProxy(item);
           }
 
-          await trpc.files.confirmUpload.mutateAsync({ uniqueId: Number(item.id) });
-          utils.files.listFiles.invalidate();
-          utils.files.listFolders.invalidate();
           updateUpload(item.id, { progress: 100, status: 'done' });
         } catch {
           updateUpload(item.id, { status: 'error' });
@@ -62,38 +75,49 @@ export function useUpload() {
       async function uploadViaPresignedUrl(item: UploadItem) {
         const { getS3Key, getPresignedUploadUrl } = await import('@/lib/s3');
 
-        const presignResult = await trpc.files.getPresignedUrl.mutateAsync({
+        const presignResult = await getPresignedUrlMutation.mutateAsync({
           filename: item.file.name,
           mimetype: item.file.type,
           filesize: item.file.size,
-          folderId: item.folderId,
         });
 
-        const key = getS3Key(presignResult.userId, presignResult.uniqueId, item.file.name);
-        const uploadUrl = await getPresignedUploadUrl(key, item.file.type);
-
-        await uploadWithXhr(uploadUrl, item.file, (progress) => {
+        await uploadWithXhr(presignResult.url, item.file, (progress) => {
           updateUpload(item.id, { progress });
+        });
+
+        await confirmUploadMutation.mutateAsync({
+          name: item.file.name,
+          basename: item.file.name,
+          mimetype: item.file.type,
+          filesize: String(item.file.size),
+          folderId: item.folderId,
+          key: presignResult.key,
         });
       }
 
       async function uploadViaServerProxy(item: UploadItem) {
-        const createResult = await trpc.files.createFile.mutateAsync({
+        const createResult = await createFileMutation.mutateAsync({
           name: item.file.name,
+          basename: item.file.name,
           mimetype: item.file.type,
-          filesize: item.file.size,
+          filesize: String(item.file.size),
           folderId: item.folderId,
         });
 
         const formData = new FormData();
         formData.append('file', item.file);
 
-        await uploadWithXhr(`/api/upload/${createResult.uniqueId}`, item.file, (progress) => {
-          updateUpload(createResult.uniqueId.toString(), { progress });
-        }, formData);
+        await uploadWithXhr(
+          `/api/upload/${createResult.uniqueId}`,
+          item.file,
+          (progress) => {
+            updateUpload(createResult.uniqueId.toString(), { progress });
+          },
+          formData,
+        );
       }
     },
-    [updateUpload, utils],
+    [updateUpload, confirmUploadMutation, getPresignedUrlMutation, createFileMutation],
   );
 
   const clearDone = useCallback(() => {
@@ -111,7 +135,12 @@ function uploadWithXhr(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('PUT', url, true);
+
+    if (body) {
+      xhr.open('POST', url, true);
+    } else {
+      xhr.open('PUT', url, true);
+    }
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -130,7 +159,6 @@ function uploadWithXhr(
     xhr.onerror = () => reject(new Error('Upload failed'));
 
     if (body) {
-      xhr.open('POST', url, true);
       xhr.send(body);
     } else {
       xhr.send(file);

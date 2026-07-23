@@ -25,7 +25,7 @@ export async function POST(
   }
 
   const fileRecord = await db.fileManagerFile.findFirst({
-    where: { uniqueId: Number(uniqueId), userId: session.user.id },
+    where: { uniqueId: Number(uniqueId), userId: Number(session.user.id) },
   });
 
   if (!fileRecord) {
@@ -40,7 +40,7 @@ export async function POST(
   }
 
   const key = getS3Key(
-    session.user.id,
+    Number(session.user.id),
     fileRecord.uniqueId,
     fileRecord.basename ?? fileRecord.name ?? 'unknown',
   );
