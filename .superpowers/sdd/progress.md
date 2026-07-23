@@ -92,3 +92,10 @@
 - [x] Task 1: Dark Mode Support (commits 9f16cd6)
 - [x] Task 2: Skeleton Loading Components (commits 97d861d)
 - [x] Task 3: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 11 Progress Ledger
+
+- [x] Task 1: Activity Log System + Notifications Router (commits e9be792)
+- [x] Task 2: Notification Bell Component (commits e9be792)
+- [x] Task 3: Activity Feed Page (commits e9be792)
+- [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
