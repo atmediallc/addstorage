@@ -1,7 +1,9 @@
 // src/components/file-manager/FileItem.tsx
 'use client';
 
+import { useState } from 'react';
 import { useFileManager } from './FileManagerContext';
+import { ItemContextMenu } from './ItemContextMenu';
 import { Folder, File } from 'lucide-react';
 import type { SerializedFolder, SerializedFile } from './types';
 
@@ -23,6 +25,8 @@ interface FileItemProps {
 
 export function FileItem({ item, type, viewMode }: FileItemProps) {
   const { currentFolderId, setCurrentFolderId, toggleSelect, selectedItems } = useFileManager();
+  const [showRename, setShowRename] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
 
   const isSelected = selectedItems.has(item.uniqueId);
 
@@ -34,38 +38,53 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
     }
   };
 
-  if (viewMode === 'grid') {
-    return (
-      <div
-        onClick={handleClick}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          // Context menu will be added in a later task
-        }}
-        className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition-colors cursor-pointer hover:bg-gray-50 ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
-      >
-        {type === 'folder' ? (
-          <Folder className="h-12 w-12 text-yellow-500" />
-        ) : (
-          <File className="h-12 w-12 text-gray-400" />
-        )}
-        <span className="w-full truncate text-center text-sm">{item.name ?? 'Unnamed'}</span>
-      </div>
-    );
-  }
-
-  return (
+  const itemContent = viewMode === 'grid' ? (
+    <div
+      onClick={handleClick}
+      className={`flex flex-col items-center gap-2 rounded-lg border p-4 transition-colors cursor-pointer hover:bg-gray-50 ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+    >
+      {type === 'folder' ? (
+        <Folder className="h-12 w-12 text-yellow-500" />
+      ) : (
+        <File className="h-12 w-12 text-gray-400" />
+      )}
+      <span className="w-full truncate text-center text-sm">{item.name ?? 'Unnamed'}</span>
+    </div>
+  ) : (
     <tr
       onClick={handleClick}
       className={`cursor-pointer border-b hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''}`}
     >
       <td className="flex items-center gap-2 py-2 pr-4">
-        {type === 'folder' ? <Folder className="h-4 w-4 text-yellow-500" /> : <File className="h-4 w-4 text-gray-400" />}
+        {type === 'folder' ? (
+          <Folder className="h-4 w-4 text-yellow-500" />
+        ) : (
+          <File className="h-4 w-4 text-gray-400" />
+        )}
         <span className="truncate">{item.name ?? 'Unnamed'}</span>
       </td>
-      <td className="px-4 py-2 text-gray-500">{type === 'file' ? formatFileSize((item as SerializedFile).filesize) : '—'}</td>
-      <td className="px-4 py-2 text-gray-500">{type === 'file' ? (item as SerializedFile).mimetype : 'Folder'}</td>
-      <td className="pl-4 py-2 text-gray-500">{new Date(item.createdAt).toLocaleDateString()}</td>
+      <td className="px-4 py-2 text-gray-500">
+        {type === 'file' ? formatFileSize((item as SerializedFile).filesize) : '—'}
+      </td>
+      <td className="px-4 py-2 text-gray-500">
+        {type === 'file' ? (item as SerializedFile).mimetype : 'Folder'}
+      </td>
+      <td className="pl-4 py-2 text-gray-500">
+        {new Date(item.createdAt).toLocaleDateString()}
+      </td>
     </tr>
+  );
+
+  return (
+    <ItemContextMenu
+      type={type}
+      onOpen={() => type === 'folder' && setCurrentFolderId(item.uniqueId)}
+      onRename={() => setShowRename(true)}
+      onDelete={() => setShowDelete(true)}
+      onPreview={() => {/* Task 8 */}}
+      onDownload={() => {/* Task 8 */}}
+    >
+      {itemContent}
+    </ItemContextMenu>
   );
 }
