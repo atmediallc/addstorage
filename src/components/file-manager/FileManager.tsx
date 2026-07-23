@@ -8,10 +8,12 @@ import { FileGrid } from './FileGrid';
 import { FileList } from './FileList';
 import { UploadZone } from './UploadZone';
 import { UploadProgress } from './UploadProgress';
+import { useUpload } from './use-upload';
 import { trpc } from '@/lib/trpc';
 
 function FileManagerInner() {
   const { currentFolderId, viewMode } = useFileManager();
+  const { uploads, uploadFiles, clearDone } = useUpload();
 
   const { data: folders } = trpc.files.listFolders.useQuery({ parentId: currentFolderId });
   const { data: files } = trpc.files.listFiles.useQuery({ folderId: currentFolderId });
@@ -20,7 +22,7 @@ function FileManagerInner() {
     <div className="flex h-full flex-col">
       <Breadcrumb />
       <Toolbar />
-      <UploadZone>
+      <UploadZone onFiles={uploadFiles}>
         <div className="flex-1 overflow-auto">
           {viewMode === 'grid' ? (
             <FileGrid folders={folders ?? []} files={files ?? []} />
@@ -29,7 +31,7 @@ function FileManagerInner() {
           )}
         </div>
       </UploadZone>
-      <UploadProgress />
+      <UploadProgress uploads={uploads} onClear={clearDone} />
     </div>
   );
 }
