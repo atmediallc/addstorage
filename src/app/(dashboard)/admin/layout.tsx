@@ -9,6 +9,7 @@ const adminLinks = [
   { href: '/admin/settings', label: 'Settings' },
   { href: '/admin/languages', label: 'Languages' },
   { href: '/admin/pages', label: 'Pages' },
+  { href: '/admin/maintenance', label: 'Maintenance' },
 ];
 
 export default function AdminLayout({

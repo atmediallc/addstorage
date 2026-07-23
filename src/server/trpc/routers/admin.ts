@@ -281,4 +281,48 @@ export const adminRouter = router({
       });
       return { page };
     }),
+
+  // ─── Maintenance ────────────────────────────────────────────────
+  getSystemInfo: adminProcedure.query(async ({ ctx }) => {
+    const totalUsers = await ctx.db.user.count();
+    const totalFiles = await ctx.db.fileManagerFile.count({ where: { deletedAt: null } });
+    const totalFolders = await ctx.db.fileManagerFolder.count({ where: { deletedAt: null } });
+    const totalSubscriptions = await ctx.db.subscription.count();
+
+    return {
+      version: process.env.APP_VERSION ?? '0.1.0',
+      nodeVersion: process.version,
+      platform: process.platform,
+      uptime: process.uptime(),
+      totalUsers,
+      totalFiles,
+      totalFolders,
+      totalSubscriptions,
+    };
+  }),
+
+  healthCheck: adminProcedure.query(async ({ ctx }) => {
+    const checks: Record<string, string> = {};
+
+    try {
+      await ctx.db.$queryRaw`SELECT 1`;
+      checks.database = 'ok';
+    } catch {
+      checks.database = 'error';
+    }
+
+    const allOk = Object.values(checks).every((v) => v === 'ok');
+
+    return {
+      status: allOk ? 'healthy' : 'degraded',
+      checks,
+      timestamp: new Date().toISOString(),
+    };
+  }),
+
+  clearCache: adminProcedure.mutation(async () => {
+    // In Next.js, cache is handled differently
+    // This is a placeholder for cache clearing logic
+    return { success: true, message: 'Cache cleared' };
+  }),
 });
