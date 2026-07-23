@@ -1,11 +1,13 @@
 // src/components/file-manager/FileItem.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useFileManager } from './FileManagerContext';
 import { ItemContextMenu } from './ItemContextMenu';
 import { RenameDialog } from './RenameDialog';
 import { DeleteDialog } from './DeleteDialog';
+import { PreviewModal } from './PreviewModal';
+import { trpc } from '@/lib/trpc';
 import { Folder, File } from 'lucide-react';
 
 interface FileItemProps {
@@ -18,6 +20,28 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
   const { currentFolderId, setCurrentFolderId, toggleSelect, selectedItems } = useFileManager();
   const [showRename, setShowRename] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<{ url: string; mimetype: string | null } | null>(null);
+  const utils = trpc.useUtils();
+
+  const handlePreview = useCallback(async () => {
+    try {
+      const data = await utils.client.files.getPreviewUrl.query({ uniqueId: item.uniqueId });
+      setPreviewData({ url: data.url, mimetype: data.mimetype });
+      setShowPreview(true);
+    } catch {
+      // silently fail
+    }
+  }, [item.uniqueId, utils.client]);
+
+  const handleDownload = useCallback(async () => {
+    try {
+      const data = await utils.client.files.getPreviewUrl.query({ uniqueId: item.uniqueId });
+      window.open(data.url, '_blank');
+    } catch {
+      // silently fail
+    }
+  }, [item.uniqueId, utils.client]);
 
   const handleClick = () => {
     if (type === 'folder') {
@@ -54,8 +78,8 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
         onOpen={() => type === 'folder' && setCurrentFolderId(item.uniqueId)}
         onRename={() => setShowRename(true)}
         onDelete={() => setShowDelete(true)}
-        onPreview={() => {/* Task 8 */}}
-        onDownload={() => {/* Task 8 */}}
+        onPreview={type === 'file' ? handlePreview : undefined}
+        onDownload={type === 'file' ? handleDownload : undefined}
       >
         {itemContent}
       </ItemContextMenu>
@@ -73,6 +97,15 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
         itemType={type}
         itemName={item.name ?? 'Unnamed'}
       />
+      {showPreview && previewData && (
+        <PreviewModal
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          url={previewData.url}
+          name={item.name ?? 'Unnamed'}
+          mimetype={previewData.mimetype}
+        />
+      )}
     </>
   );
 }
