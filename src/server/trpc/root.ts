@@ -5,6 +5,7 @@ import { filesRouter } from './routers/files';
 import { adminRouter } from './routers/admin';
 import { userRouter } from './routers/user';
 import { billingRouter } from './routers/billing';
+import { notificationsRouter } from './routers/notifications';
 
 export const appRouter = router({
   auth: authRouter,
@@ -12,6 +13,7 @@ export const appRouter = router({
   admin: adminRouter,
   user: userRouter,
   billing: billingRouter,
+  notifications: notificationsRouter,
 });
 
 export type AppRouter = typeof appRouter;

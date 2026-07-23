@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { can } from '@/server/auth/rbac/ability';
 import { UnverifiedBanner } from '@/components/auth/unverified-banner';
 import { useTheme } from '@/components/theme-provider';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { Sun, Moon, Monitor } from 'lucide-react';
 
 export function Header() {
@@ -42,7 +43,7 @@ export function Header() {
           {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light')}
-            className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800"
             title={`Current: ${theme}`}
           >
             {theme === 'dark' ? (
@@ -53,6 +54,8 @@ export function Header() {
               <Sun className="h-5 w-5" />
             )}
           </button>
+
+          <NotificationBell />
 
           <div className="relative group">
             <button className="flex items-center gap-2 rounded-md p-1.5 hover:bg-gray-100">

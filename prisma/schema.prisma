@@ -46,6 +46,7 @@ model User {
   traffic          Traffic[]
   zips             Zip[]
   auditLogs        AuditLog[]
+  notifications    Notification[]
 
   @@map("users")
 }
@@ -349,4 +350,24 @@ model FailedJob {
   failedAt   DateTime @map("failed_at")
 
   @@map("failed_jobs")
+}
+
+// ─── Notifications ────────────────────────────────────────────
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String
+  message   String
+  type      String   @default("info") // info, success, warning, error
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
 }
