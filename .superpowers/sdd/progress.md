@@ -81,3 +81,8 @@
 
 - [x] Task 1: Setup Wizard Multi-Step Form (commits 7a90f2b)
 - [x] Task 2: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 9 Progress Ledger
+
+- [x] Task 1: Upgrade System — health check, system info, maintenance (commits 7be281c)
+- [x] Task 2: Final Integration Check — all checks pass (46 tests, TSC clean)
