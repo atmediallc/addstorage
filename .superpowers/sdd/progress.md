@@ -63,3 +63,11 @@
 - [x] Task 3: Password Change (commits c0bf753)
 - [x] Task 4: Storage Details (commits c0bf753)
 - [x] Task 5: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 6 Progress Ledger
+
+- [x] Task 1: Stripe Setup + Billing Router (commits a231d88)
+- [x] Task 2: Subscription Overview Page (commits a231d88)
+- [x] Task 3: Payment Methods (commits a231d88)
+- [x] Task 4: Invoices (commits a231d88)
+- [x] Task 5: Final Integration Check — all checks pass (46 tests, TSC clean)
