@@ -16,7 +16,7 @@ const passwordValidation = z
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean().optional().default(false),
+  rememberMe: z.boolean().optional(),
 });
 
 export const registerSchema = z
@@ -47,6 +47,11 @@ export const resetPasswordSchema = z
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   });
+
+export type LoginInput = z.infer<typeof loginSchema>;
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 // ─── File Operations ────────────────────────────────────────────
 
