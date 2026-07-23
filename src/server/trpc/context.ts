@@ -10,6 +10,7 @@ export async function createContext({ req }: { req: Request }) {
   return {
     db,
     session: session ?? null,
+    headers: req.headers,
   };
 }
 
