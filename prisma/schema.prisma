@@ -63,7 +63,7 @@ model PasswordReset {
 
 model FileManagerFolder {
   id       Int    @id @default(autoincrement())
-  uniqueId Int    @unique @map("unique_id")
+  uniqueId Int    @unique @default(autoincrement()) @map("unique_id")
   parentId Int    @default(0) @map("parent_id")
   name     String?
   type     String?
@@ -92,7 +92,7 @@ model FileManagerFolder {
 
 model FileManagerFile {
   id       Int    @id @default(autoincrement())
-  uniqueId Int    @unique @map("unique_id")
+  uniqueId Int    @unique @default(autoincrement()) @map("unique_id")
   folderId Int    @default(0) @map("folder_id")
   thumbnail String?
   name     String?
