@@ -44,3 +44,14 @@
 - [x] Task 1: Share Procedures + ShareDialog (commits 62fb377)
 - [x] Task 2: Public Share Page (commits 62fb377)
 - [x] Task 3: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 4 Progress Ledger
+
+- [x] Task 1: Admin tRPC Router + Middleware (commits 95d008a)
+- [x] Task 2: Admin Layout + Sidebar (commits 95d008a)
+- [x] Task 3: Dashboard Overview (commits 95d008a)
+- [x] Task 4: User Management (commits 95d008a)
+- [x] Task 5: Site Settings (commits 95d008a)
+- [x] Task 6: Language Management (commits 95d008a)
+- [x] Task 7: Pages CMS (commits 95d008a)
+- [x] Task 8: Final Integration Check — all checks pass (46 tests, TSC clean)
