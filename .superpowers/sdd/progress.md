@@ -55,3 +55,11 @@
 - [x] Task 6: Language Management (commits 95d008a)
 - [x] Task 7: Pages CMS (commits 95d008a)
 - [x] Task 8: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 5 Progress Ledger
+
+- [x] Task 1: User tRPC Router (commits c0bf753)
+- [x] Task 2: Profile Settings Page (commits c0bf753)
+- [x] Task 3: Password Change (commits c0bf753)
+- [x] Task 4: Storage Details (commits c0bf753)
+- [x] Task 5: Final Integration Check — all checks pass (46 tests, TSC clean)
