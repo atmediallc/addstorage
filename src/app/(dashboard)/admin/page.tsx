@@ -2,6 +2,7 @@
 
 import { trpc } from '@/lib/trpc';
 import { Users, HardDrive, Folder, File } from 'lucide-react';
+import { PageSkeleton } from '@/components/ui/skeleton';
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -14,7 +15,7 @@ function formatBytes(bytes: number): string {
 export default function AdminDashboardPage() {
   const { data: stats, isLoading } = trpc.admin.getDashboardStats.useQuery();
 
-  if (isLoading) return <div className="p-4">Loading...</div>;
+  if (isLoading) return <PageSkeleton />;
   if (!stats) return null;
 
   const cards = [
