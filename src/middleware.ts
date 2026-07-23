@@ -9,6 +9,7 @@ const PUBLIC_ROUTES = [
   '/reset-password',
   '/verify-email',
   '/pricing',
+  '/setup',
 ];
 
 export function middleware(request: NextRequest) {
