@@ -71,3 +71,8 @@
 - [x] Task 3: Payment Methods (commits a231d88)
 - [x] Task 4: Invoices (commits a231d88)
 - [x] Task 5: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 7 Progress Ledger
+
+- [x] Task 1: Public Pricing Page (commits afaf237)
+- [x] Task 2: Final Integration Check — all checks pass (46 tests, TSC clean)
