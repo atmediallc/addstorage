@@ -321,8 +321,135 @@ export const adminRouter = router({
   }),
 
   clearCache: adminProcedure.mutation(async () => {
-    // In Next.js, cache is handled differently
-    // This is a placeholder for cache clearing logic
     return { success: true, message: 'Cache cleared' };
+  }),
+
+  // ─── Analytics ─────────────────────────────────────────────────
+  analyticsOverview: adminProcedure.query(async ({ ctx }) => {
+    const [totalUsers, totalFiles, totalFolders, totalStorage, recentUsers, activeShares] =
+      await Promise.all([
+        ctx.db.user.count(),
+        ctx.db.fileManagerFile.count({ where: { deletedAt: null } }),
+        ctx.db.fileManagerFolder.count({ where: { deletedAt: null } }),
+        ctx.db.userSettings.aggregate({ _sum: { storageCapacity: true } }),
+        ctx.db.user.count({
+          where: {
+            createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          },
+        }),
+        ctx.db.share.count(),
+      ]);
+
+    return {
+      totalUsers,
+      totalFiles,
+      totalFolders,
+      totalStorageGB: totalStorage._sum.storageCapacity ?? 0,
+      recentUsers,
+      activeShares,
+    };
+  }),
+
+  analyticsUserGrowth: adminProcedure.query(async ({ ctx }) => {
+    // Get user registrations grouped by day for last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const users = await ctx.db.user.findMany({
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Group by date
+    const grouped: Record<string, number> = {};
+    for (const user of users) {
+      const day = user.createdAt.toISOString().split('T')[0] ?? 'unknown';
+      grouped[day] = (grouped[day] ?? 0) + 1;
+    }
+
+    return Object.entries(grouped).map(([date, count]) => ({ date, count }));
+  }),
+
+  analyticsFileTypeDistribution: adminProcedure.query(async ({ ctx }) => {
+    const files = await ctx.db.fileManagerFile.findMany({
+      where: { deletedAt: null },
+      select: { mimetype: true },
+    });
+
+    const categories = {
+      Images: 0,
+      Documents: 0,
+      Videos: 0,
+      Audio: 0,
+      Other: 0,
+    };
+
+    for (const file of files) {
+      const mime = file.mimetype ?? '';
+      if (mime.startsWith('image/')) categories.Images += 1;
+      else if (mime.startsWith('video/')) categories.Videos += 1;
+      else if (mime.startsWith('audio/')) categories.Audio += 1;
+      else if (mime.includes('pdf') || mime.includes('word') || mime.includes('text') || mime.includes('sheet')) categories.Documents += 1;
+      else categories.Other += 1;
+    }
+
+    return Object.entries(categories)
+      .filter(([, count]) => count > 0)
+      .map(([type, count]) => ({ type, count }));
+  }),
+
+  analyticsStorageByUser: adminProcedure.query(async ({ ctx }) => {
+    const users = await ctx.db.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        settings: { select: { storageCapacity: true } },
+      },
+      take: 20,
+    });
+
+    // Count files per user
+    const fileCounts = await ctx.db.fileManagerFile.groupBy({
+      by: ['userId'],
+      where: { deletedAt: null },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 20,
+    });
+
+    const countMap = new Map(fileCounts.map((f) => [f.userId, f._count.id]));
+
+    return users.map((u) => ({
+      userId: u.id,
+      name: u.name ?? 'Unknown',
+      email: u.email,
+      storageGB: u.settings?.storageCapacity ?? 0,
+      fileCount: countMap.get(u.id) ?? 0,
+    }));
+  }),
+
+  analyticsShareStats: adminProcedure.query(async ({ ctx }) => {
+    const [total, passwordProtected, expired] = await Promise.all([
+      ctx.db.share.count(),
+      ctx.db.share.count({ where: { protected: true } }),
+      // Count expired (shares with expireIn set and createdAt + expireIn < now)
+      ctx.db.share.findMany({
+        where: { expireIn: { not: null } },
+        select: { createdAt: true, expireIn: true },
+      }).then((shares) =>
+        shares.filter((s) => {
+          const expiresAt = new Date(s.createdAt);
+          expiresAt.setHours(expiresAt.getHours() + (s.expireIn ?? 0));
+          return expiresAt < new Date();
+        }).length,
+      ),
+    ]);
+
+    return {
+      total,
+      passwordProtected,
+      expired,
+      active: total - expired,
+    };
   }),
 });
