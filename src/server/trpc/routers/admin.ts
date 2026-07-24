@@ -452,4 +452,51 @@ export const adminRouter = router({
       active: total - expired,
     };
   }),
+
+  // ─── Exports ───────────────────────────────────────────────────
+  exportUsers: adminProcedure.query(async ({ ctx }) => {
+    const users = await ctx.db.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        settings: { select: { storageCapacity: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const fileCounts = await ctx.db.fileManagerFile.groupBy({
+      by: ['userId'],
+      where: { deletedAt: null },
+      _count: { id: true },
+    });
+    const countMap = new Map(fileCounts.map((f) => [f.userId, f._count.id]));
+
+    return users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      createdAt: u.createdAt,
+      storageGB: u.settings?.storageCapacity ?? 0,
+      fileCount: countMap.get(u.id) ?? 0,
+    }));
+  }),
+
+  exportFiles: adminProcedure.query(async ({ ctx }) => {
+    const files = await ctx.db.fileManagerFile.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    return files;
+  }),
+
+  exportShares: adminProcedure.query(async ({ ctx }) => {
+    const shares = await ctx.db.share.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return shares;
+  }),
 });
