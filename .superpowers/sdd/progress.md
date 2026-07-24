@@ -155,3 +155,10 @@
 - [x] Task 2: Docker Optimization (commits 7ff943d)
 - [x] Task 3: Health Checks & Monitoring (commits 7ff943d)
 - [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 20 Progress Ledger
+
+- [x] Task 1: Rate Limiting Middleware (commits 2031b13)
+- [x] Task 2: Input Sanitization & XSS Prevention (commits 2031b13)
+- [x] Task 3: Security Headers & Attack Detection (commits 2031b13)
+- [x] Task 4: Final Integration Check — all checks pass (68 tests, TSC clean)
