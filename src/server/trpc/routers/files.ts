@@ -278,13 +278,23 @@ export const filesRouter = router({
   search: protectedProcedure
     .input(z.object({ query: z.string().min(1).max(255), parentId: z.number().optional() }))
     .query(async ({ ctx, input }) => {
-      const where = {
-        userId: Number(ctx.session.user.id),
-        deletedAt: null,
-        name: { contains: input.query, mode: 'insensitive' as const },
-        ...(input.parentId !== undefined ? { folderId: input.parentId } : {}),
-      };
-      const files = await ctx.db.fileManagerFile.findMany({ where, orderBy: { name: 'asc' } });
+      const files = await ctx.db.fileManagerFile.findMany({
+        where: {
+          userId: Number(ctx.session.user.id),
+          deletedAt: null,
+          name: { contains: input.query, mode: 'insensitive' },
+          ...(input.parentId !== undefined ? { folderId: input.parentId } : {}),
+        },
+        select: {
+          uniqueId: true,
+          name: true,
+          mimetype: true,
+          filesize: true,
+          createdAt: true,
+        },
+        orderBy: { name: 'asc' },
+        take: 100,
+      });
       return files;
     }),
 
