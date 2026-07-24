@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { ToastProvider } from '@/components/ui/toast';
 import { ThemeProvider } from '@/components/theme-provider';
+import { I18nProvider } from '@/i18n/provider';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -31,12 +32,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <ThemeProvider>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          <ToastProvider>{children}</ToastProvider>
-        </QueryClientProvider>
-      </trpc.Provider>
-    </ThemeProvider>
+    <I18nProvider>
+      <ThemeProvider>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <ToastProvider>{children}</ToastProvider>
+          </QueryClientProvider>
+        </trpc.Provider>
+      </ThemeProvider>
+    </I18nProvider>
   );
 }

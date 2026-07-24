@@ -6,6 +6,7 @@ import { can } from '@/server/auth/rbac/ability';
 import { UnverifiedBanner } from '@/components/auth/unverified-banner';
 import { useTheme } from '@/components/theme-provider';
 import { NotificationBell } from '@/components/notifications/notification-bell';
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Sun, Moon, Monitor } from 'lucide-react';
 
 export function Header() {
@@ -56,6 +57,8 @@ export function Header() {
           </button>
 
           <NotificationBell />
+
+          <LocaleSwitcher />
 
           <div className="relative group">
             <button className="flex items-center gap-2 rounded-md p-1.5 hover:bg-gray-100">
