@@ -141,3 +141,10 @@
 - [x] Task 2: Translation Files EN/ES (commits 58a2b06)
 - [x] Task 3: Language Switcher (commits 58a2b06)
 - [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 18 Progress Ledger
+
+- [x] Task 1: Advanced Search with Filters (commits 5f623f1)
+- [x] Task 2: Sort Options (commits 5f623f1)
+- [x] Task 3: Search Results View (commits 5f623f1)
+- [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
