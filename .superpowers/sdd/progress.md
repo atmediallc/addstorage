@@ -134,3 +134,10 @@
 - [x] Task 2: Image Viewer with Zoom/Pan (commits 4639bf9)
 - [x] Task 3: Video/Audio Players (commits 4639bf9)
 - [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 17 Progress Ledger
+
+- [x] Task 1: i18n Infrastructure (commits 58a2b06)
+- [x] Task 2: Translation Files EN/ES (commits 58a2b06)
+- [x] Task 3: Language Switcher (commits 58a2b06)
+- [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
