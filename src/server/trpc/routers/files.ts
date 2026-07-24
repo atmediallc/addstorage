@@ -162,6 +162,15 @@ export const filesRouter = router({
       metadata: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // Check mimetype blacklist
+      const { isMimetypeBlocked } = await import('@/lib/constants');
+      if (isMimetypeBlocked(input.mimetype)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `File type '${input.mimetype}' is not allowed`,
+        });
+      }
+
       // Check storage quota
       const settings = await ctx.db.userSettings.findUnique({
         where: { userId: Number(ctx.session.user.id) },
@@ -226,6 +235,15 @@ export const filesRouter = router({
       metadata: z.record(z.string(), z.unknown()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      // Check mimetype blacklist
+      const { isMimetypeBlocked } = await import('@/lib/constants');
+      if (isMimetypeBlocked(input.mimetype)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `File type '${input.mimetype}' is not allowed`,
+        });
+      }
+
       const file = await ctx.db.fileManagerFile.create({
         data: {
           name: input.name,
@@ -734,5 +752,83 @@ export const filesRouter = router({
       });
 
       return { success: true };
+    }),
+
+  // ─── Share Email Notification ──────────────────────────────────────
+  sendShareEmail: protectedProcedure
+    .input(z.object({
+      shareId: z.number(),
+      emails: z.array(z.string().email()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = Number(ctx.session.user.id);
+
+      // Verify share belongs to user
+      const share = await ctx.db.share.findFirst({
+        where: { id: input.shareId, userId },
+        include: {
+          file: { select: { name: true } },
+          folder: { select: { name: true } },
+        },
+      });
+
+      if (!share) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Share not found' });
+      }
+
+      const user = await ctx.db.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      }
+
+      const itemName = share.type === 'folder'
+        ? share.folder?.name ?? undefined
+        : share.file?.name ?? undefined;
+
+      const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/s/${share.token}`;
+
+      // Send emails (import dynamically to avoid SSR issues)
+      const { sendSharedLinkEmail } = await import('@/lib/email/resend');
+
+      for (const email of input.emails) {
+        try {
+          await sendSharedLinkEmail(
+            email,
+            user.name,
+            user.email,
+            shareUrl,
+            itemName,
+          );
+        } catch {
+          // Continue sending to other emails even if one fails
+        }
+      }
+
+      return { success: true, sent: input.emails.length };
+    }),
+
+  // ─── Share Search ────────────────────────────────────────────────
+  searchShares: protectedProcedure
+    .input(z.object({ query: z.string().min(1).max(255) }))
+    .query(async ({ ctx, input }) => {
+      const userId = Number(ctx.session.user.id);
+
+      const shares = await ctx.db.share.findMany({
+        where: {
+          userId,
+          OR: [
+            { token: { contains: input.query, mode: 'insensitive' } },
+            { type: { contains: input.query, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          file: { select: { name: true, basename: true } },
+          folder: { select: { name: true } },
+        },
+        take: 50,
+      });
+
+      return shares;
     }),
 });

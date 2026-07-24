@@ -3,6 +3,7 @@ import { router } from '../index';
 import { protectedProcedure } from '../procedures';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
+import { logAuditEvent } from '@/server/auth/audit';
 
 // Admin guard: only ADMIN+ (level >= 80)
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -16,29 +17,32 @@ const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 export const adminRouter = router({
   // ─── Dashboard ──────────────────────────────────────────────────
   getDashboardStats: adminProcedure.query(async ({ ctx }) => {
-    const totalUsers = await ctx.db.user.count();
-    const totalFiles = await ctx.db.fileManagerFile.count({ where: { deletedAt: null } });
-    const totalFolders = await ctx.db.fileManagerFolder.count({ where: { deletedAt: null } });
+    const { cached, CACHE_KEYS } = await import('@/lib/cache');
+    return cached(CACHE_KEYS.DASHBOARD_STATS, async () => {
+      const totalUsers = await ctx.db.user.count();
+      const totalFiles = await ctx.db.fileManagerFile.count({ where: { deletedAt: null } });
+      const totalFolders = await ctx.db.fileManagerFolder.count({ where: { deletedAt: null } });
 
-    const files = await ctx.db.fileManagerFile.findMany({
-      where: { deletedAt: null },
-      select: { filesize: true },
-    });
-    const storageUsed = files.reduce((sum: number, f: { filesize: string | null }) => sum + Number(f.filesize ?? '0'), 0);
+      const files = await ctx.db.fileManagerFile.findMany({
+        where: { deletedAt: null },
+        select: { filesize: true },
+      });
+      const storageUsed = files.reduce((sum: number, f: { filesize: string | null }) => sum + Number(f.filesize ?? '0'), 0);
 
-    const recentUsers = await ctx.db.user.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      select: { id: true, name: true, email: true, createdAt: true },
-    });
+      const recentUsers = await ctx.db.user.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { id: true, name: true, email: true, createdAt: true },
+      });
 
-    return {
-      totalUsers,
-      totalFiles,
-      totalFolders,
-      storageUsed: Number(storageUsed),
-      recentUsers,
-    };
+      return {
+        totalUsers,
+        totalFiles,
+        totalFolders,
+        storageUsed: Number(storageUsed),
+        recentUsers,
+      };
+    }, 30_000); // cache for 30 seconds
   }),
 
   // ─── User Management ────────────────────────────────────────────
@@ -181,12 +185,15 @@ export const adminRouter = router({
 
   // ─── Settings ───────────────────────────────────────────────────
   getSettings: adminProcedure.query(async ({ ctx }) => {
-    const settings = await ctx.db.setting.findMany();
-    const map: Record<string, string> = {};
-    for (const s of settings) {
-      map[s.name] = s.value ?? '';
-    }
-    return map;
+    const { cached, CACHE_KEYS } = await import('@/lib/cache');
+    return cached(CACHE_KEYS.SETTINGS, async () => {
+      const settings = await ctx.db.setting.findMany();
+      const map: Record<string, string> = {};
+      for (const s of settings) {
+        map[s.name] = s.value ?? '';
+      }
+      return map;
+    }, 60_000); // cache for 1 minute
   }),
 
   updateSettings: adminProcedure
@@ -201,6 +208,9 @@ export const adminRouter = router({
           create: { name, value },
         });
       }
+      // Invalidate settings cache
+      const { invalidateCache, CACHE_KEYS } = await import('@/lib/cache');
+      invalidateCache(CACHE_KEYS.SETTINGS);
       return { success: true };
     }),
 
@@ -499,4 +509,134 @@ export const adminRouter = router({
     });
     return shares;
   }),
+
+  // ─── Admin Password Reset ───────────────────────────────────────
+  resetUserPassword: adminProcedure
+    .input(z.object({ userId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db.user.findUnique({ where: { id: input.userId } });
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      }
+
+      // Use BetterAuth to send password reset email
+      const { auth } = await import('@/server/auth');
+      await auth.api.forgetPassword({
+        body: {
+          email: user.email,
+          redirectTo: '/reset-password',
+        },
+      });
+
+      await logAuditEvent(
+        Number(ctx.session.user.id),
+        'admin.password_reset',
+        'user',
+        input.userId,
+      );
+
+      return { success: true, message: `Password reset email sent to ${user.email}` };
+    }),
+
+  // ─── Admin Invoices ───────────────────────────────────────────
+  listInvoices: adminProcedure.query(async ({ ctx }) => {
+    const invoices = await ctx.db.invoice.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+    return invoices;
+  }),
+
+  getUserInvoices: adminProcedure
+    .input(z.object({ userId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const invoices = await ctx.db.invoice.findMany({
+        where: { userId: input.userId },
+        orderBy: { createdAt: 'desc' },
+      });
+      return invoices;
+    }),
+
+  createInvoice: adminProcedure
+    .input(z.object({
+      userId: z.number(),
+      order: z.string(),
+      planId: z.string(),
+      seller: z.record(z.unknown()),
+      client: z.record(z.unknown()),
+      bag: z.array(z.record(z.unknown())),
+      total: z.string(),
+      currency: z.string().default('usd'),
+      notes: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const token = Math.random().toString(36).substring(2, 18);
+      const invoice = await ctx.db.invoice.create({
+        data: {
+          token,
+          order: input.order,
+          provider: 'stripe',
+          userId: input.userId,
+          planId: input.planId,
+          seller: input.seller,
+          client: input.client,
+          bag: input.bag,
+          total: input.total,
+          currency: input.currency,
+          notes: input.notes,
+        },
+      });
+      return invoice;
+    }),
+
+  deleteInvoice: adminProcedure
+    .input(z.object({ invoiceId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.invoice.delete({ where: { id: input.invoiceId } });
+      return { success: true };
+    }),
+
+  // ─── Support Form ─────────────────────────────────────────────
+  sendSupportMessage: adminProcedure
+    .input(z.object({
+      subject: z.string().min(1).max(255),
+      message: z.string().min(10),
+      priority: z.enum(['low', 'medium', 'high']).default('medium'),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const adminEmail = process.env.ADMIN_EMAIL ?? 'admin@tutiscloud.com';
+
+      // Send support notification to admin
+      const { sendSharedLinkEmail } = await import('@/lib/email/resend');
+      const { Resend } = await import('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const FROM_ADDRESS = process.env.EMAIL_FROM ?? 'TutisCloud <noreply@tutiscloud.com>';
+
+      const user = await ctx.db.user.findUnique({
+        where: { id: Number(ctx.session.user.id) },
+      });
+
+      await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: adminEmail,
+        subject: `[Support ${input.priority.toUpperCase()}] ${input.subject}`,
+        html: `
+          <h2>Support Request</h2>
+          <p><strong>From:</strong> ${user?.name ?? 'Unknown'} (${user?.email ?? 'unknown'})</p>
+          <p><strong>Priority:</strong> ${input.priority}</p>
+          <hr />
+          <p>${input.message.replace(/\n/g, '<br/>')}</p>
+        `,
+      });
+
+      await logAuditEvent(
+        Number(ctx.session.user.id),
+        'support.message_sent',
+        'support',
+        undefined,
+        { subject: input.subject, priority: input.priority },
+      );
+
+      return { success: true };
+    }),
 });

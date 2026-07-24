@@ -45,3 +45,32 @@ export const PAGINATION_DEFAULTS = {
   PAGE_SIZE: 20,
   MAX_PAGE_SIZE: 100,
 } as const;
+
+// ─── Mimetype Blacklist ──────────────────────────────────────────
+// Default blocked mimetypes (matching Laravel's mimetypes_blacklist setting)
+// These are checked by splitting on '/' and comparing the type/subtype
+export const BLOCKED_MIMETYPES = [
+  'application/x-httpd-php',
+  'application/x-php',
+  'application/x-sh',
+  'application/x-shellscript',
+  'application/x-javascript',
+  'application/javascript',
+  'text/x-server-parsed-html',
+  'text/x-server-parsed',
+  'text/x-php',
+  'text/x-perl',
+  'text/x-python',
+  'text/x-shellscript',
+];
+
+/**
+ * Check if a mimetype is blocked by the blacklist.
+ * Matches against the full mimetype (e.g. "application/x-php") or
+ * just the type prefix (e.g. "application" would block all application/*).
+ */
+export function isMimetypeBlocked(mimetype: string): boolean {
+  return BLOCKED_MIMETYPES.some(
+    (blocked) => mimetype === blocked || mimetype.startsWith(blocked + '/'),
+  );
+}

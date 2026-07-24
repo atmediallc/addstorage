@@ -11,120 +11,193 @@ import {
   createCheckoutSession,
   createPortalSession,
   deletePaymentMethod,
+  getOrCreateCustomer,
 } from '@/lib/stripe';
+import { db } from '@/server/db';
+import { logAuditEvent } from '@/server/auth/audit';
 
 export const billingRouter = router({
-  // ─── Plans ──────────────────────────────────────────────────────
+  // ─── Plans ───────────────────────────────────────────────────────
   getPlans: publicProcedure.query(async () => {
-    const plans = await getActivePlans();
-    return plans.map((plan) => ({
-      id: plan.id,
-      name: plan.nickname ?? plan.id,
-      price: plan.amount ?? 0,
-      currency: plan.currency,
-      interval: plan.interval,
-      intervalCount: plan.interval_count,
-    }));
+    return getActivePlans();
   }),
 
-  // ─── Current Subscription ───────────────────────────────────────
-  getCurrentSubscription: protectedProcedure.query(async ({ ctx }) => {
+  // ─── Subscription ────────────────────────────────────────────────
+  getSubscription: protectedProcedure.query(async ({ ctx }) => {
     const userId = Number(ctx.session.user.id);
-
-    const subscription = await ctx.db.subscription.findFirst({
-      where: { userId, stripeStatus: { notIn: ['canceled', 'unpaid'] } },
+    const subscription = await db.subscription.findFirst({
+      where: { userId, stripeStatus: { not: 'canceled' } },
       orderBy: { createdAt: 'desc' },
     });
-
-    if (!subscription) return null;
-
-    return {
-      id: subscription.id,
-      status: subscription.stripeStatus,
-      planId: subscription.stripePlan,
-      currentPeriodEnd: subscription.endsAt,
-      cancelAtPeriodEnd: subscription.endsAt ? new Date(subscription.endsAt) > new Date() : false,
-    };
+    return subscription;
   }),
 
-  // ─── Checkout ───────────────────────────────────────────────────
-  createCheckoutSession: protectedProcedure
-    .input(z.object({ priceId: z.string() }))
+  // ─── Checkout ────────────────────────────────────────────────────
+  checkout: protectedProcedure
+    .input(z.object({ priceId: z.string(), planName: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
       const userId = Number(ctx.session.user.id);
-      const user = await ctx.db.user.findUnique({
-        where: { id: userId },
-        select: { email: true, name: true },
-      });
+      const user = await db.user.findUnique({ where: { id: userId } });
       if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
 
-      // Get or create Stripe customer
-      const { getOrCreateCustomer } = await import('@/lib/stripe');
-      const customer = await getOrCreateCustomer(userId, user.email, user.name ?? undefined);
-
       const session = await createCheckoutSession(
-        customer.id,
+        user.stripeId || '',
         input.priceId,
-        `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/billing?success=true`,
-        `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/billing?canceled=true`,
+        `${process.env.NEXT_PUBLIC_APP_URL}/settings`
       );
-
-      return { sessionId: session.id, url: session.url };
+      return { url: session.url };
     }),
 
-  // ─── Portal ─────────────────────────────────────────────────────
-  createPortalSession: protectedProcedure.mutation(async ({ ctx }) => {
+  // ─── Portal ──────────────────────────────────────────────────────
+  portal: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = Number(ctx.session.user.id);
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user || !user.stripeId) throw new TRPCError({ code: 'NOT_FOUND', message: 'No Stripe customer' });
 
-    // Find Stripe customer ID from subscription
-    const subscription = await ctx.db.subscription.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!subscription) {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'No subscription found' });
-    }
-
-    // In a real app, you'd store the Stripe customer ID
-    // For now, we'll use the session to manage
     const session = await createPortalSession(
-      subscription.stripeId, // This is actually the subscription ID, need customer ID
-      `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}/billing`,
+      user.stripeId,
+      `${process.env.NEXT_PUBLIC_APP_URL}/settings`
     );
-
     return { url: session.url };
   }),
 
-  // ─── Payment Methods ────────────────────────────────────────────
-  getPaymentMethods: protectedProcedure.query(async ({ ctx }) => {
+  // ─── Payment Methods ─────────────────────────────────────────────
+  addPaymentMethod: protectedProcedure.query(async ({ ctx }) => {
     const userId = Number(ctx.session.user.id);
-
-    // In production, get from Stripe using customer ID
-    // Placeholder for now
-    return [];
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user || !user.stripeId) return [];
+    return getCustomerPaymentMethods(user.stripeId);
   }),
 
-  addPaymentMethod: protectedProcedure
+  setDefaultPaymentMethod: protectedProcedure
     .input(z.object({ paymentMethodId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      // In production, attach payment method to customer
+      const userId = Number(ctx.session.user.id);
+      const user = await db.user.findUnique({ where: { id: userId } });
+      if (!user || !user.stripeId) throw new TRPCError({ code: 'NOT_FOUND', message: 'No Stripe customer' });
+
+      await stripe.paymentMethods.attach(input.paymentMethodId, {
+        customer: user.stripeId,
+      });
+      await stripe.customers.update(user.stripeId, {
+        invoice_settings: { default_payment_method: input.paymentMethodId },
+      });
       return { success: true };
     }),
 
-  removePaymentMethod: protectedProcedure
+  deletePaymentMethod: protectedProcedure
     .input(z.object({ paymentMethodId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       await deletePaymentMethod(input.paymentMethodId);
       return { success: true };
     }),
 
-  // ─── Invoices ───────────────────────────────────────────────────
-  getInvoices: protectedProcedure.query(async ({ ctx }) => {
+  // ─── Cancel Subscription ─────────────────────────────────────────
+  cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = Number(ctx.session.user.id);
 
-    // In production, get from Stripe using customer ID
-    // Placeholder for now
-    return [];
+    const subscription = await db.subscription.findFirst({
+      where: { userId, stripeStatus: { notIn: ['canceled', 'incomplete_expired'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!subscription) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'No active subscription found' });
+    }
+
+    // Cancel on Stripe (at period end)
+    const updated = await stripe.subscriptions.update(subscription.stripeId, {
+      cancel_at_period_end: true,
+    });
+
+    // Update local DB
+    await db.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        stripeStatus: 'canceled',
+        endsAt: new Date((updated as any).current_period_end * 1000),
+      },
+    });
+
+    await logAuditEvent(userId, 'subscription.cancel', 'subscription', subscription.id);
+
+    return { success: true };
+  }),
+
+  // ─── Resume Subscription ─────────────────────────────────────────
+  resumeSubscription: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = Number(ctx.session.user.id);
+
+    const subscription = await db.subscription.findFirst({
+      where: { userId, stripeStatus: 'canceled' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!subscription) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'No canceled subscription found' });
+    }
+
+    // Check if subscription hasn't ended yet
+    if (subscription.endsAt && new Date(subscription.endsAt) < new Date()) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'Subscription has already ended' });
+    }
+
+    // Resume on Stripe
+    await stripe.subscriptions.update(subscription.stripeId, {
+      cancel_at_period_end: false,
+    });
+
+    // Update local DB
+    await db.subscription.update({
+      where: { id: subscription.id },
+      data: {
+        stripeStatus: 'active',
+        endsAt: null,
+      },
+    });
+
+    await logAuditEvent(userId, 'subscription.resume', 'subscription', subscription.id);
+
+    return { success: true };
+  }),
+
+  // ─── Setup Intent ────────────────────────────────────────────────
+  getSetupIntent: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = Number(ctx.session.user.id);
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+
+    // Ensure Stripe customer exists
+    let customerId = user.stripeId;
+    if (!customerId) {
+      const customer = await getOrCreateCustomer(userId, user.email, user.name);
+      customerId = customer.id;
+      await db.user.update({ where: { id: userId }, data: { stripeId: customerId } });
+    }
+
+    // Create SetupIntent
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+    });
+
+    return { clientSecret: setupIntent.client_secret };
+  }),
+
+  // ─── Invoices ────────────────────────────────────────────────────
+  getInvoices: protectedProcedure.query(async ({ ctx }) => {
+    const userId = Number(ctx.session.user.id);
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user || !user.stripeId) return [];
+    return getCustomerInvoices(user.stripeId);
+  }),
+
+  getUserInvoices: protectedProcedure.query(async ({ ctx }) => {
+    const userId = Number(ctx.session.user.id);
+    const invoices = await db.invoice.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return invoices;
   }),
 });

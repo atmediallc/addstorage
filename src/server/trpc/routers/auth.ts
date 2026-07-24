@@ -58,4 +58,30 @@ export const authRouter = router({
 
     return { success: true };
   }),
+
+  // ─── Confirm Password ────────────────────────────────────────────
+  confirmPassword: protectedProcedure
+    .input(z.object({ password: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = Number(ctx.session.user.id);
+
+      // Verify password against stored hash
+      const user = await ctx.db.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Use BetterAuth to verify the password
+      const { verifyPassword } = await import('better-auth/password');
+      const isValid = await verifyPassword({
+        password: input.password,
+        passwordHash: user.password,
+      });
+
+      if (!isValid) {
+        throw new Error('Invalid password');
+      }
+
+      return { success: true };
+    }),
 });

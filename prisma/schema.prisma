@@ -47,6 +47,7 @@ model User {
   zips             Zip[]
   auditLogs        AuditLog[]
   notifications    Notification[]
+  invoices         Invoice[]
 
   @@map("users")
 }
@@ -392,4 +393,26 @@ model FileVersion {
   @@unique([fileId, version])
   @@index([fileId])
   @@map("file_versions")
+}
+
+// ─── Invoice ─────────────────────────────────────────────────────
+model Invoice {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  order     String   @unique
+  provider  String?
+  userId    Int      @map("user_id")
+  planId    String   @map("plan_id")
+  seller    Json     // { name, email, address }
+  client    Json     // { name, email, address }
+  bag       Json     // line items
+  notes     String?
+  total     String
+  currency  String   @default("usd")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("invoices")
 }

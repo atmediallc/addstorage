@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { render } from '@react-email/render';
 import { VerificationEmail } from './templates/verification';
 import { ResetPasswordEmail } from './templates/reset-password';
+import { SharedLinkEmail } from './templates/shared-link';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -33,6 +34,24 @@ export async function sendResetPasswordEmail(
     from: FROM_ADDRESS,
     to,
     subject: 'Reset your password — TutisCloud',
+    html,
+  });
+}
+
+export async function sendSharedLinkEmail(
+  to: string,
+  senderName: string,
+  senderEmail: string,
+  shareUrl: string,
+  itemName?: string,
+): Promise<void> {
+  const html = await render(
+    SharedLinkEmail({ senderName, senderEmail, shareUrl, itemName }),
+  );
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${senderName} shared a file with you on TutisCloud`,
     html,
   });
 }
