@@ -11,6 +11,7 @@ import { UploadZone } from './UploadZone';
 import { UploadProgress } from './UploadProgress';
 import { SearchBar } from './SearchBar';
 import { BulkActions } from './BulkActions';
+import { FolderTree } from './FolderTree';
 import { useUpload } from './use-upload';
 import { trpc } from '@/lib/trpc';
 
@@ -34,21 +35,34 @@ function FileManagerInner() {
     <div className="flex h-full flex-col">
       <Breadcrumb />
       <Toolbar />
-      <div className="px-4 py-2">
-        <SearchBar onResults={handleSearchResults} onClear={handleSearchClear} />
-      </div>
-      <BulkActions />
-      <UploadZone onFiles={uploadFiles}>
-        <div className="flex-1 overflow-auto">
-          {searchResults ? (
-            <FileGrid folders={[]} files={searchResults as any} />
-          ) : viewMode === 'grid' ? (
-            <FileGrid folders={folders ?? []} files={files ?? []} />
-          ) : (
-            <FileList folders={folders ?? []} files={files ?? []} />
-          )}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Folder Tree Sidebar */}
+        <div className="hidden w-56 shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900 md:block">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Folders
+          </h3>
+          <FolderTree />
         </div>
-      </UploadZone>
+
+        {/* Main content */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="px-4 py-2">
+            <SearchBar onResults={handleSearchResults} onClear={handleSearchClear} />
+          </div>
+          <BulkActions />
+          <UploadZone onFiles={uploadFiles}>
+            <div className="flex-1 overflow-auto">
+              {searchResults ? (
+                <FileGrid folders={[]} files={searchResults as any} />
+              ) : viewMode === 'grid' ? (
+                <FileGrid folders={folders ?? []} files={files ?? []} />
+              ) : (
+                <FileList folders={folders ?? []} files={files ?? []} />
+              )}
+            </div>
+          </UploadZone>
+        </div>
+      </div>
       <UploadProgress uploads={uploads} onClear={clearDone} />
     </div>
   );

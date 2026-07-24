@@ -21,6 +21,22 @@ export const filesRouter = router({
       return folders;
     }),
 
+  listAllFolders: protectedProcedure.query(async ({ ctx }) => {
+    const folders = await ctx.db.fileManagerFolder.findMany({
+      where: {
+        userId: Number(ctx.session.user.id),
+        deletedAt: null,
+      },
+      orderBy: { name: 'asc' },
+      select: {
+        uniqueId: true,
+        name: true,
+        parentId: true,
+      },
+    });
+    return folders;
+  }),
+
   getBreadcrumb: protectedProcedure
     .input(z.object({ folderId: z.number() }))
     .query(async ({ ctx, input }) => {
