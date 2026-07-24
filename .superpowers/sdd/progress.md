@@ -127,3 +127,10 @@
 - [x] Task 2: Revision History UI (commits e7c20cd)
 - [x] Task 3: Restore Previous Version (commits e7c20cd)
 - [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 16 Progress Ledger
+
+- [x] Task 1: Enhanced File Preview Modal (commits 4639bf9)
+- [x] Task 2: Image Viewer with Zoom/Pan (commits 4639bf9)
+- [x] Task 3: Video/Audio Players (commits 4639bf9)
+- [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
