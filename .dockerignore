@@ -1,0 +1,42 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+.next
+.turbo
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Tests
+__tests__
+*.test.*
+*.spec.*
+vitest.config.*
+
+# Documentation
+docs
+README.md
+LICENSE
+
+# Environment
+.env
+.env.local
+.env*.local
+
+# Docker
+docker-compose*.yml
+
+# Superpowers
+.superpowers
+
+# Prisma migrations (handled separately)
+prisma/migrations
