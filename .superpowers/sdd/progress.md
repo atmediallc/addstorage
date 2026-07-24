@@ -120,3 +120,10 @@
 - [x] Task 2: Drag-Drop Move Targets (commits cd8f5f5)
 - [x] Task 3: Drop Zone Visual Feedback (commits cd8f5f5)
 - [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 15 Progress Ledger
+
+- [x] Task 1: File Versioning Schema + Procedures (commits e7c20cd)
+- [x] Task 2: Revision History UI (commits e7c20cd)
+- [x] Task 3: Restore Previous Version (commits e7c20cd)
+- [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
