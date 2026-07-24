@@ -9,6 +9,7 @@ import { DeleteDialog } from './DeleteDialog';
 import { PreviewModal } from './PreviewModal';
 import { FavouriteButton } from './FavouriteButton';
 import { ShareDialog } from './ShareDialog';
+import { RevisionHistory } from './RevisionHistory';
 import { trpc } from '@/lib/trpc';
 import { Folder, File } from 'lucide-react';
 
@@ -24,6 +25,7 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
   const [showDelete, setShowDelete] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
   const [previewData, setPreviewData] = useState<{ url: string; mimetype: string | null } | null>(null);
   const utils = trpc.useUtils();
 
@@ -127,6 +129,7 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
         onPreview={type === 'file' ? handlePreview : undefined}
         onDownload={type === 'file' ? handleDownload : undefined}
         onShare={() => setShowShare(true)}
+        onVersions={type === 'file' ? () => setShowVersions(true) : undefined}
       >
         {itemContent}
       </ItemContextMenu>
@@ -160,6 +163,14 @@ export function FileItem({ item, type, viewMode }: FileItemProps) {
         type={type}
         itemName={item.name ?? 'Unnamed'}
       />
+      {type === 'file' && (
+        <RevisionHistory
+          open={showVersions}
+          onOpenChange={setShowVersions}
+          fileId={item.uniqueId}
+          fileName={item.name ?? 'Unnamed'}
+        />
+      )}
     </>
   );
 }

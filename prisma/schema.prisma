@@ -114,6 +114,7 @@ model FileManagerFile {
   user   User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   folder FileManagerFolder? @relation(fields: [folderId], references: [uniqueId])
   shares Share[]
+  versions FileVersion[]
 
   @@index([userId])
   @@index([folderId])
@@ -370,4 +371,25 @@ model Notification {
   @@index([read])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ─── File Versions ──────────────────────────────────────────────
+
+model FileVersion {
+  id          Int      @id @default(autoincrement())
+  fileId      Int      @map("file_id")
+  version     Int
+  basename    String?
+  name        String?
+  filesize    String?
+  mimetype    String?
+  s3Key       String?  @map("s3_key")
+  comment     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  file FileManagerFile @relation(fields: [fileId], references: [uniqueId], onDelete: Cascade)
+
+  @@unique([fileId, version])
+  @@index([fileId])
+  @@map("file_versions")
 }

@@ -658,4 +658,71 @@ export const filesRouter = router({
 
       return { deleted: input.ids.length };
     }),
+
+  // ─── File Versions ─────────────────────────────────────────────
+  getVersions: protectedProcedure
+    .input(z.object({ fileId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const versions = await ctx.db.fileVersion.findMany({
+        where: { fileId: input.fileId },
+        orderBy: { version: 'desc' },
+      });
+      return versions;
+    }),
+
+  createVersion: protectedProcedure
+    .input(z.object({
+      fileId: z.number(),
+      basename: z.string().optional(),
+      name: z.string().optional(),
+      filesize: z.string().optional(),
+      mimetype: z.string().optional(),
+      s3Key: z.string().optional(),
+      comment: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Get current highest version
+      const latest = await ctx.db.fileVersion.findFirst({
+        where: { fileId: input.fileId },
+        orderBy: { version: 'desc' },
+      });
+      const nextVersion = (latest?.version ?? 0) + 1;
+
+      const version = await ctx.db.fileVersion.create({
+        data: {
+          fileId: input.fileId,
+          version: nextVersion,
+          basename: input.basename,
+          name: input.name,
+          filesize: input.filesize,
+          mimetype: input.mimetype,
+          s3Key: input.s3Key,
+          comment: input.comment,
+        },
+      });
+
+      return { version };
+    }),
+
+  restoreVersion: protectedProcedure
+    .input(z.object({ versionId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      const version = await ctx.db.fileVersion.findUnique({
+        where: { id: input.versionId },
+      });
+      if (!version) throw new TRPCError({ code: 'NOT_FOUND', message: 'Version not found' });
+
+      // Restore file metadata from version
+      await ctx.db.fileManagerFile.update({
+        where: { uniqueId: version.fileId },
+        data: {
+          basename: version.basename ?? undefined,
+          name: version.name ?? undefined,
+          filesize: version.filesize ?? undefined,
+          mimetype: version.mimetype ?? undefined,
+        },
+      });
+
+      return { success: true };
+    }),
 });
