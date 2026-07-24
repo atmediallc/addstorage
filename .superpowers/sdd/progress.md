@@ -113,3 +113,10 @@
 - [x] Task 2: Public Share Access Route (commits bed68f8)
 - [x] Task 3: Download Tracking & Stats (commits bed68f8)
 - [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
+
+# Phase 14 Progress Ledger
+
+- [x] Task 1: Folder Tree Sidebar (commits cd8f5f5)
+- [x] Task 2: Drag-Drop Move Targets (commits cd8f5f5)
+- [x] Task 3: Drop Zone Visual Feedback (commits cd8f5f5)
+- [x] Task 4: Final Integration Check — all checks pass (46 tests, TSC clean)
