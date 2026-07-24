@@ -169,3 +169,10 @@
 - [x] Task 2: Admin Analytics Dashboard UI (commits 4bd73e8)
 - [x] Task 3: Usage Charts & Stats (commits 4bd73e8)
 - [x] Task 4: Final Integration Check — all checks pass (68 tests, TSC clean)
+
+# Phase 22 Progress Ledger
+
+- [x] Task 1: Report Generation / CSV Export (commits b6a5820)
+- [x] Task 2: Export Procedures (commits b6a5820)
+- [x] Task 3: Report Manager UI (commits b6a5820)
+- [x] Task 4: Final Integration Check — all checks pass (68 tests, TSC clean)
