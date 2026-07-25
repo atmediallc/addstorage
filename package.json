@@ -34,6 +34,7 @@
     "@trpc/server": "^11.13.0",
     "better-auth": "^1.6.23",
     "bullmq": "^5.80.10",
+    "archiver": "^7.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "ioredis": "^5.11.1",
@@ -54,6 +55,7 @@
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
+    "@types/archiver": "^6.0.3",
     "@types/node": "^20.19.43",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

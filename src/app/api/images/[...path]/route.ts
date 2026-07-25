@@ -66,7 +66,7 @@ export async function GET(
   const s3Key = `images/${segments.join('/')}`;
 
   try {
-    const presignedUrl = getPresignedDownloadUrl(s3Key, 3600);
+    const presignedUrl = await getPresignedDownloadUrl(s3Key, 3600);
     return NextResponse.redirect(presignedUrl);
   } catch {
     return NextResponse.redirect(new URL(DEFAULT_IMAGE_URL, request.url));

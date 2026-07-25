@@ -12,11 +12,11 @@ function getCardBrandIcon(brand: string) {
 
 export default function PaymentMethodsPage() {
   const { toast } = useToast();
-  const { data: methods, isLoading } = trpc.billing.getPaymentMethods.useQuery();
-  const removeMethod = trpc.billing.removePaymentMethod.useMutation({
+  const { data: methods, isLoading } = trpc.billing.addPaymentMethod.useQuery();
+  const removeMethod = trpc.billing.deletePaymentMethod.useMutation({
     onSuccess: () => {
       toast('Payment method removed', 'success');
-      trpc.useUtils().billing.getPaymentMethods.invalidate();
+      trpc.useUtils().billing.addPaymentMethod.invalidate();
     },
     onError: (err) => toast(err.message, 'error'),
   });

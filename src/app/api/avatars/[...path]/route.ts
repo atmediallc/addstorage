@@ -79,7 +79,7 @@ export async function GET(
     filename = segments.slice(1).join('/');
   } else {
     // Single segment — treat as filename; attempt to find owner via DB
-    filename = segments[0];
+    filename = segments[0] ?? 'default.png';
   }
 
   // ── Resolve user ────────────────────────────────────────────

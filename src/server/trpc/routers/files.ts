@@ -4,6 +4,7 @@ import { protectedProcedure, publicProcedure } from '../procedures';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { randomBytes } from 'crypto';
+import { logAuditEvent } from '@/server/auth/audit';
 
 export const filesRouter = router({
   // ─── Folders ────────────────────────────────────────────────────
@@ -754,6 +755,37 @@ export const filesRouter = router({
       return { success: true };
     }),
 
+  // ─── Zip Download ─────────────────────────────────────────────────
+  getZipDownloadUrl: protectedProcedure
+    .input(z.object({ fileIds: z.array(z.number()).min(1).max(100) }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = Number(ctx.session.user.id);
+
+      // Verify files belong to user
+      const files = await ctx.db.fileManagerFile.findMany({
+        where: {
+          uniqueId: { in: input.fileIds },
+          userId,
+          deletedAt: null,
+        },
+        select: { uniqueId: true },
+      });
+
+      if (files.length === 0) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'No valid files found' });
+      }
+
+      const validIds = files.map((f) => f.uniqueId);
+      const url = `/api/zip/${userId}/${validIds.join('/')}`;
+
+      await logAuditEvent(userId, 'file.zip_created', 'file', undefined, {
+        fileIds: validIds,
+        count: validIds.length,
+      });
+
+      return { url, fileCount: validIds.length };
+    }),
+
   // ─── Share Email Notification ──────────────────────────────────────
   sendShareEmail: protectedProcedure
     .input(z.object({
@@ -830,5 +862,163 @@ export const filesRouter = router({
       });
 
       return shares;
+    }),
+
+  // ─── Share Browsing (Public) ─────────────────────────────────────
+  getShareNavigationTree: publicProcedure
+    .input(z.object({ token: z.string(), password: z.string().optional() }))
+    .query(async ({ ctx, input }) => {
+      const share = await ctx.db.share.findUnique({
+        where: { token: input.token },
+        include: {
+          folder: true,
+        },
+      });
+
+      if (!share) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Share not found' });
+      }
+
+      // Check expiry
+      if (share.expireIn && share.createdAt) {
+        const expiresAt = new Date(share.createdAt.getTime() + share.expireIn * 3600 * 1000);
+        if (new Date() > expiresAt) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Share has expired' });
+        }
+      }
+
+      // Check password
+      if (share.protected && share.password) {
+        if (!input.password) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Password required' });
+        }
+        const { verifyPassword } = await import('better-auth/crypto');
+        const valid = await verifyPassword({
+          password: input.password,
+          hash: share.password,
+        });
+        if (!valid) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid password' });
+        }
+      }
+
+      if (share.type !== 'folder' || !share.itemId) {
+        return [];
+      }
+
+      // Build navigation tree from share folder
+      const rootFolderId = share.itemId;
+      const allFolders = await ctx.db.fileManagerFolder.findMany({
+        where: { deletedAt: null },
+        select: { uniqueId: true, name: true, parentId: true },
+      });
+
+      // Walk up from root to build tree path
+      const tree: Array<{ uniqueId: number; name: string; parentId: number }> = [];
+      let currentId = rootFolderId;
+      while (currentId !== 0) {
+        const folder = allFolders.find((f) => f.uniqueId === currentId);
+        if (!folder) break;
+        tree.unshift({ uniqueId: folder.uniqueId, name: folder.name ?? 'Untitled', parentId: folder.parentId });
+        currentId = folder.parentId;
+      }
+
+      // Get children of root folder
+      const children = allFolders
+        .filter((f) => f.parentId === rootFolderId)
+        .map((f) => ({ uniqueId: f.uniqueId, name: f.name ?? 'Untitled', type: 'folder' as const }));
+
+      return { tree, root: tree[0], children };
+    }),
+
+  getShareFolders: publicProcedure
+    .input(z.object({ token: z.string(), folderId: z.number(), password: z.string().optional() }))
+    .query(async ({ ctx, input }) => {
+      const share = await ctx.db.share.findUnique({ where: { token: input.token } });
+      if (!share) throw new TRPCError({ code: 'NOT_FOUND', message: 'Share not found' });
+
+      // Verify password if protected
+      if (share.protected && share.password && input.password) {
+        const { verifyPassword } = await import('better-auth/crypto');
+        const valid = await verifyPassword({ password: input.password, hash: share.password });
+        if (!valid) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid password' });
+      }
+
+      const folders = await ctx.db.fileManagerFolder.findMany({
+        where: {
+          parentId: input.folderId,
+          userId: share.userId,
+          deletedAt: null,
+        },
+        select: { uniqueId: true, name: true, iconColor: true, iconEmoji: true, createdAt: true },
+        orderBy: { name: 'asc' },
+      });
+
+      return folders;
+    }),
+
+  getShareFiles: publicProcedure
+    .input(z.object({ token: z.string(), folderId: z.number().default(0), password: z.string().optional() }))
+    .query(async ({ ctx, input }) => {
+      const share = await ctx.db.share.findUnique({ where: { token: input.token } });
+      if (!share) throw new TRPCError({ code: 'NOT_FOUND', message: 'Share not found' });
+
+      // Verify password if protected
+      if (share.protected && share.password && input.password) {
+        const { verifyPassword } = await import('better-auth/crypto');
+        const valid = await verifyPassword({ password: input.password, hash: share.password });
+        if (!valid) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid password' });
+      }
+
+      const files = await ctx.db.fileManagerFile.findMany({
+        where: {
+          folderId: input.folderId,
+          userId: share.userId,
+          deletedAt: null,
+        },
+        select: { uniqueId: true, name: true, basename: true, mimetype: true, filesize: true, type: true, createdAt: true },
+        orderBy: { name: 'asc' },
+      });
+
+      return files;
+    }),
+
+  searchShareContent: publicProcedure
+    .input(z.object({ token: z.string(), query: z.string().min(1).max(255), password: z.string().optional() }))
+    .query(async ({ ctx, input }) => {
+      const share = await ctx.db.share.findUnique({ where: { token: input.token } });
+      if (!share) throw new TRPCError({ code: 'NOT_FOUND', message: 'Share not found' });
+
+      if (share.protected && share.password && input.password) {
+        const { verifyPassword } = await import('better-auth/crypto');
+        const valid = await verifyPassword({ password: input.password, hash: share.password });
+        if (!valid) throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Invalid password' });
+      }
+
+      const [folders, files] = await Promise.all([
+        ctx.db.fileManagerFolder.findMany({
+          where: {
+            userId: share.userId,
+            deletedAt: null,
+            name: { contains: input.query, mode: 'insensitive' },
+          },
+          select: { uniqueId: true, name: true, type: true },
+          take: 50,
+        }),
+        ctx.db.fileManagerFile.findMany({
+          where: {
+            userId: share.userId,
+            deletedAt: null,
+            OR: [
+              { name: { contains: input.query, mode: 'insensitive' } },
+              { basename: { contains: input.query, mode: 'insensitive' } },
+            ],
+          },
+          select: { uniqueId: true, name: true, basename: true, mimetype: true, filesize: true, type: true },
+          take: 50,
+        }),
+      ]);
+
+      return { folders, files };
     }),
 });

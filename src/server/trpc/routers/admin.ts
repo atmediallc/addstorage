@@ -4,6 +4,8 @@ import { protectedProcedure } from '../procedures';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 import { logAuditEvent } from '@/server/auth/audit';
+import { stripe } from '@/lib/stripe';
+import Stripe from 'stripe';
 
 // Admin guard: only ADMIN+ (level >= 80)
 const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
@@ -182,6 +184,62 @@ export const adminRouter = router({
       });
       return { success: true };
     }),
+
+  createUser: adminProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      email: z.string().email(),
+      password: z.string().min(8),
+      role: z.enum(['admin', 'master', 'editor', 'viewer']).default('viewer'),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Check if email already exists
+      const existing = await ctx.db.user.findUnique({ where: { email: input.email } });
+      if (existing) {
+        throw new TRPCError({ code: 'CONFLICT', message: 'Email already in use' });
+      }
+
+      // Create user with bcrypt-hashed password (compatible with BetterAuth)
+      const { hashPassword } = await import('better-auth/crypto');
+      const hashedPassword = await hashPassword(input.password);
+
+      const user = await ctx.db.user.create({
+        data: {
+          name: input.name,
+          email: input.email,
+          password: hashedPassword,
+          role: input.role,
+        },
+      });
+
+        // Create default settings
+        await ctx.db.userSettings.create({
+          data: { userId: user.id, storageCapacity: 5 },
+        });
+
+        await logAuditEvent(
+          Number(ctx.session.user.id),
+          'admin.user_created',
+          'user',
+          user.id,
+          { email: input.email, role: input.role },
+        );
+
+      return { success: true, userId: user.id };
+    }),
+
+  newRegistrations: adminProcedure.query(async ({ ctx }) => {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [last7Days, last30Days] = await Promise.all([
+      ctx.db.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      ctx.db.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    ]);
+
+    return { last7Days, last30Days };
+  }),
 
   // ─── Settings ───────────────────────────────────────────────────
   getSettings: adminProcedure.query(async ({ ctx }) => {
@@ -521,7 +579,7 @@ export const adminRouter = router({
 
       // Use BetterAuth to send password reset email
       const { auth } = await import('@/server/auth');
-      await auth.api.forgetPassword({
+      await auth.api.requestPasswordReset({
         body: {
           email: user.email,
           redirectTo: '/reset-password',
@@ -562,9 +620,9 @@ export const adminRouter = router({
       userId: z.number(),
       order: z.string(),
       planId: z.string(),
-      seller: z.record(z.unknown()),
-      client: z.record(z.unknown()),
-      bag: z.array(z.record(z.unknown())),
+      seller: z.record(z.string(), z.unknown()),
+      client: z.record(z.string(), z.unknown()),
+      bag: z.array(z.record(z.string(), z.unknown())),
       total: z.string(),
       currency: z.string().default('usd'),
       notes: z.string().optional(),
@@ -578,9 +636,9 @@ export const adminRouter = router({
           provider: 'stripe',
           userId: input.userId,
           planId: input.planId,
-          seller: input.seller,
-          client: input.client,
-          bag: input.bag,
+          seller: input.seller as any,
+          client: input.client as any,
+          bag: input.bag as any,
           total: input.total,
           currency: input.currency,
           notes: input.notes,
@@ -638,5 +696,163 @@ export const adminRouter = router({
       );
 
       return { success: true };
+    }),
+
+  // ─── Plan Management (Stripe Products/Prices) ────────────────────
+  listPlans: adminProcedure.query(async () => {
+    const plans = await stripe.products.list({ active: true, expand: ['data.default_price'] });
+    return plans.data.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description ?? null,
+      metadata: product.metadata,
+      defaultPrice: product.default_price as Stripe.Price | null,
+      createdAt: product.created,
+    }));
+  }),
+
+  getPlan: adminProcedure
+    .input(z.object({ productId: z.string() }))
+    .query(async ({ input }) => {
+      const product = await stripe.products.retrieve(input.productId, {
+        expand: ['default_price'],
+      });
+      const prices = await stripe.prices.list({
+        product: input.productId,
+        active: true,
+      });
+      return {
+        id: product.id,
+        name: product.name,
+        description: product.description ?? null,
+        metadata: product.metadata,
+        defaultPrice: product.default_price as Stripe.Price | null,
+        prices: prices.data.map((p) => ({
+          id: p.id,
+          unitAmount: p.unit_amount,
+          currency: p.currency,
+          interval: p.recurring?.interval ?? null,
+          intervalCount: p.recurring?.interval_count ?? null,
+          metadata: p.metadata,
+        })),
+        createdAt: product.created,
+      };
+    }),
+
+  createPlan: adminProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      description: z.string().optional(),
+      price: z.number().positive(), // in cents
+      currency: z.string().default('usd'),
+      interval: z.enum(['month', 'year']).default('month'),
+      storageGb: z.number().positive(),
+      features: z.array(z.string()).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const product = await stripe.products.create({
+        name: input.name,
+        description: input.description,
+        metadata: {
+          storage_gb: String(input.storageGb),
+          features: JSON.stringify(input.features ?? []),
+        },
+      });
+
+      const price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: input.price,
+        currency: input.currency,
+        recurring: {
+          interval: input.interval,
+        },
+        metadata: {
+          storage_gb: String(input.storageGb),
+        },
+      });
+
+      await stripe.products.update(product.id, {
+        default_price: price.id,
+      });
+
+      await logAuditEvent(
+        Number(ctx.session.user.id),
+        'admin.plan_created',
+        'plan',
+        undefined,
+        { productId: product.id, name: input.name },
+      );
+
+      return { productId: product.id, priceId: price.id };
+    }),
+
+  updatePlan: adminProcedure
+    .input(z.object({
+      productId: z.string(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      storageGb: z.number().optional(),
+      active: z.boolean().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const updateData: Stripe.ProductUpdateParams = {};
+      if (input.name) updateData.name = input.name;
+      if (input.description !== undefined) updateData.description = input.description;
+      if (input.storageGb !== undefined) {
+        updateData.metadata = { storage_gb: String(input.storageGb) };
+      }
+      if (input.active !== undefined) updateData.active = input.active;
+
+      await stripe.products.update(input.productId, updateData);
+
+      await logAuditEvent(
+        Number(ctx.session.user.id),
+        'admin.plan_updated',
+        'plan',
+        undefined,
+        { productId: input.productId },
+      );
+
+      return { success: true };
+    }),
+
+  deletePlan: adminProcedure
+    .input(z.object({ productId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // Archive instead of delete (Stripe best practice)
+      await stripe.products.update(input.productId, { active: false });
+
+      await logAuditEvent(
+        Number(ctx.session.user.id),
+        'admin.plan_deleted',
+        'plan',
+        undefined,
+        { productId: input.productId },
+      );
+
+      return { success: true };
+    }),
+
+  getPlanSubscribers: adminProcedure
+    .input(z.object({ productId: z.string() }))
+    .query(async ({ input }) => {
+      // Get all prices for this product, then count active subscriptions
+      const prices = await stripe.prices.list({
+        product: input.productId,
+        active: true,
+      });
+      const priceIds = prices.data.map((p) => p.id);
+
+      let totalSubscribers = 0;
+      for (const priceId of priceIds) {
+        const subs = await stripe.subscriptions.list({
+          price: priceId,
+          status: 'active',
+          limit: 100,
+        });
+        totalSubscribers += subs.data.length;
+      }
+
+      return { totalSubscribers };
     }),
 });

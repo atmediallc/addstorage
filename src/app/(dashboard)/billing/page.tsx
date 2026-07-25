@@ -15,10 +15,10 @@ function formatPrice(amount: number, currency: string): string {
 export default function BillingPage() {
   const { toast } = useToast();
   const { data: plans, isLoading: plansLoading } = trpc.billing.getPlans.useQuery();
-  const { data: subscription, isLoading: subLoading } = trpc.billing.getCurrentSubscription.useQuery();
+  const { data: subscription, isLoading: subLoading } = trpc.billing.getSubscription.useQuery();
 
-  const checkout = trpc.billing.createCheckoutSession.useMutation({
-    onSuccess: (data) => {
+  const checkout = trpc.billing.checkout.useMutation({
+    onSuccess: (data: { url: string | null }) => {
       if (data.url) {
         window.location.href = data.url;
       }
@@ -26,8 +26,8 @@ export default function BillingPage() {
     onError: (err) => toast(err.message, 'error'),
   });
 
-  const portal = trpc.billing.createPortalSession.useMutation({
-    onSuccess: (data) => {
+  const portal = trpc.billing.portal.useMutation({
+    onSuccess: (data: { url: string }) => {
       if (data.url) {
         window.location.href = data.url;
       }
@@ -49,13 +49,13 @@ export default function BillingPage() {
             <div>
               <p className="text-sm text-gray-500">
                 Status:{' '}
-                <span className={`font-medium ${subscription.status === 'active' ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {subscription.status}
+                <span className={`font-medium ${subscription.stripeStatus === 'active' ? 'text-green-600' : 'text-yellow-600'}`}>
+                  {subscription.stripeStatus}
                 </span>
               </p>
-              {subscription.currentPeriodEnd && (
+              {subscription.endsAt && (
                 <p className="text-sm text-gray-500">
-                  Renews: {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                  Renews: {new Date(subscription.endsAt).toLocaleDateString()}
                 </p>
               )}
             </div>
@@ -79,7 +79,7 @@ export default function BillingPage() {
         {plans && plans.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {plans.map((plan) => {
-              const isCurrent = subscription?.planId === plan.id;
+              const isCurrent = subscription?.stripePlan === plan.id;
               return (
                 <div
                   key={plan.id}
@@ -87,9 +87,9 @@ export default function BillingPage() {
                     isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
                   }`}
                 >
-                  <h3 className="text-lg font-semibold">{plan.name}</h3>
+                  <h3 className="text-lg font-semibold">{typeof plan.product === 'object' && plan.product && 'name' in plan.product ? plan.product.name : plan.id}</h3>
                   <div className="mt-2">
-                    <span className="text-3xl font-bold">{formatPrice(plan.price, plan.currency)}</span>
+                    <span className="text-3xl font-bold">{formatPrice(plan.amount ?? 0, plan.currency)}</span>
                     <span className="text-sm text-gray-500">/{plan.interval}</span>
                   </div>
                   <div className="mt-4">

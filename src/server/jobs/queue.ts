@@ -30,7 +30,6 @@ export const zipQueue = new Queue('zip', {
     removeOnComplete: 10,
     removeOnFail: 10,
     attempts: 2,
-    timeout: 300000, // 5 minutes
   },
 });
 

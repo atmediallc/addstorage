@@ -24,7 +24,7 @@ export async function getOrCreateCustomer(userId: number, email: string, name?: 
 
 // Get active plans
 export async function getActivePlans() {
-  const plans = await stripe.plans.list({ active: true });
+  const plans = await stripe.plans.list({ active: true, expand: ['data.product'] });
   return plans.data;
 }
 

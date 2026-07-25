@@ -43,7 +43,8 @@ export const billingRouter = router({
       const session = await createCheckoutSession(
         user.stripeId || '',
         input.priceId,
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings`
+        `${process.env.NEXT_PUBLIC_APP_URL}/billing`,
+        `${process.env.NEXT_PUBLIC_APP_URL}/billing`
       );
       return { url: session.url };
     }),

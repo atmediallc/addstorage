@@ -26,27 +26,28 @@ async function upsertSubscription(
   const plan = sub.items.data[0]?.price?.id ?? null;
   const storageGB = parseStorageFromMetadata(sub.items.data[0]?.price?.metadata) ?? DEFAULT_STORAGE_GB;
 
-  const subscription = await db.subscription.upsert({
-    where: { stripeId: sub.id },
-    create: {
-      userId,
-      name: sub.status,
-      stripeId: sub.id,
-      stripeStatus: sub.status,
-      stripePlan: plan,
-      quantity: sub.items.data[0]?.quantity ?? 1,
-      trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
-      endsAt: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
-    },
-    update: {
-      name: sub.status,
-      stripeStatus: sub.status,
-      stripePlan: plan,
-      quantity: sub.items.data[0]?.quantity ?? 1,
-      trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
-      endsAt: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
-    },
+  const existing = await db.subscription.findFirst({
+    where: { userId, stripeId: sub.id },
   });
+
+  const subscriptionData = {
+    name: sub.status,
+    stripeStatus: sub.status,
+    stripePlan: plan,
+    quantity: sub.items.data[0]?.quantity ?? 1,
+    trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
+    endsAt: sub.current_period_end ? new Date(sub.current_period_end * 1000) : null,
+  };
+
+  const subscription = existing
+    ? await db.subscription.update({ where: { id: existing.id }, data: subscriptionData })
+    : await db.subscription.create({
+        data: {
+          userId,
+          stripeId: sub.id,
+          ...subscriptionData,
+        },
+      });
 
   // Sync subscription items
   for (const item of sub.items.data) {

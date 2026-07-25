@@ -13,10 +13,20 @@ export const AuditAction = {
   EMAIL_VERIFIED: 'auth.email.verified',
   ROLE_CHANGED: 'auth.role.changed',
   SESSION_REVOKED: 'auth.session.revoked',
+  USER_CREATED: 'admin.user_created',
+  PASSWORD_RESET: 'admin.password_reset',
+  PLAN_CREATED: 'admin.plan_created',
+  PLAN_UPDATED: 'admin.plan_updated',
+  PLAN_DELETED: 'admin.plan_deleted',
+  FILE_ZIP_CREATED: 'file.zip_created',
+  SUBSCRIPTION_CANCEL: 'subscription.cancel',
+  SUBSCRIPTION_RESUME: 'subscription.resume',
+  SUPPORT_MESSAGE: 'support.message_sent',
+  INVOICE_PAYMENT_FAILED: 'invoice.payment_failed',
 } as const;
 
 export type AuditActionValue =
-  (typeof AuditAction)[keyof typeof AuditAction];
+  (typeof AuditAction)[keyof typeof AuditAction] | string;
 
 export interface AuditMetadata {
   ip?: string;

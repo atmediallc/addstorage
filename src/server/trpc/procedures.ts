@@ -6,6 +6,11 @@ import { Permission } from '@/server/auth/rbac/permissions';
 
 export const publicProcedure = t.procedure;
 
+// ─── Activity Tracking ──────────────────────────────────────────
+// Throttle to every 5 minutes per user to avoid DB spam
+const activityThrottle = new Map<string, number>();
+const ACTIVITY_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
   if (!ctx.session) {
     throw new TRPCError({
@@ -13,6 +18,22 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       message: 'Authentication required',
     });
   }
+
+  // Track user activity (throttled)
+  const userId = ctx.session.user.id;
+  const now = Date.now();
+  const lastUpdate = activityThrottle.get(userId) ?? 0;
+  if (now - lastUpdate > ACTIVITY_THROTTLE_MS) {
+    activityThrottle.set(userId, now);
+    // Fire-and-forget DB update
+    import('@/server/db').then(({ db }) => {
+      db.user.update({
+        where: { id: Number(userId) },
+        data: { lastActivityAt: new Date() },
+      }).catch(() => {});
+    }).catch(() => {});
+  }
+
   return next({
     ctx: {
       ...ctx,

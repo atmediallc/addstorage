@@ -67,17 +67,17 @@ export default function PricingPage() {
                     Most Popular
                   </span>
                 )}
-                <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{typeof plan.product === 'object' && plan.product && 'name' in plan.product ? plan.product.name : plan.id}</h3>
                 <div className="mt-4">
                   <span className="text-4xl font-bold text-gray-900">
-                    {formatPrice(plan.price, plan.currency)}
+                    {formatPrice(plan.amount ?? 0, plan.currency)}
                   </span>
                   <span className="text-sm text-gray-500">/{plan.interval}</span>
                 </div>
                 <ul className="mt-6 space-y-3">
                   <li className="flex items-center gap-2 text-sm text-gray-600">
                     <Check className="h-4 w-4 text-green-500" />
-                    {plan.name === 'Free' ? '1 GB storage' : 'Unlimited storage'}
+                    {(typeof plan.product === 'object' && plan.product && 'name' in plan.product && plan.product.name === 'Free') ? '1 GB storage' : 'Unlimited storage'}
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-600">
                     <Check className="h-4 w-4 text-green-500" />
@@ -85,7 +85,7 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-600">
                     <Check className="h-4 w-4 text-green-500" />
-                    {plan.name === 'Free' ? 'Basic support' : 'Priority support'}
+                    {(typeof plan.product === 'object' && plan.product && 'name' in plan.product && plan.product.name === 'Free') ? 'Basic support' : 'Priority support'}
                   </li>
                 </ul>
                 <Link

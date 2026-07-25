@@ -72,10 +72,10 @@ export const authRouter = router({
       }
 
       // Use BetterAuth to verify the password
-      const { verifyPassword } = await import('better-auth/password');
+      const { verifyPassword } = await import('better-auth/crypto');
       const isValid = await verifyPassword({
         password: input.password,
-        passwordHash: user.password,
+        hash: user.password,
       });
 
       if (!isValid) {
