@@ -1021,4 +1021,9 @@ export const filesRouter = router({
 
       return { folders, files };
     }),
+
+  getEmojisList: publicProcedure.query(async () => {
+    const { FOLDER_EMOJIS, FOLDER_COLORS } = await import('@/lib/emojis');
+    return { emojis: FOLDER_EMOJIS, colors: FOLDER_COLORS };
+  }),
 });

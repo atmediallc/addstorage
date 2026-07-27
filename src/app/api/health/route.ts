@@ -1,6 +1,6 @@
 // src/app/api/health/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/server/db';
 
 export async function GET() {
   const checks: Record<string, { status: string; latencyMs?: number }> = {};
@@ -8,7 +8,7 @@ export async function GET() {
   // Database
   const dbStart = Date.now();
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await db.$queryRaw`SELECT 1`;
     checks.database = { status: 'ok', latencyMs: Date.now() - dbStart };
   } catch (e) {
     checks.database = { status: 'error', latencyMs: Date.now() - dbStart };

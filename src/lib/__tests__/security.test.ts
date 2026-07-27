@@ -9,6 +9,7 @@ import {
 } from '../sanitize';
 import { checkRateLimit, RATE_LIMITS } from '../rate-limit';
 import { hasSuspiciousPattern } from '../api-security';
+import { isMimetypeBlocked } from '../constants';
 
 describe('sanitize', () => {
   describe('sanitizeHtml', () => {
@@ -148,5 +149,21 @@ describe('hasSuspiciousPattern', () => {
   it('allows normal text', () => {
     expect(hasSuspiciousPattern('Hello world')).toBe(false);
     expect(hasSuspiciousPattern('file_name-123.pdf')).toBe(false);
+  });
+});
+
+describe('mimetype blacklist', () => {
+  it('blocks dangerous executable mimetypes', () => {
+    expect(isMimetypeBlocked('application/x-php')).toBe(true);
+    expect(isMimetypeBlocked('text/x-php')).toBe(true);
+    expect(isMimetypeBlocked('text/x-python')).toBe(true);
+    expect(isMimetypeBlocked('text/x-shellscript')).toBe(true);
+  });
+
+  it('allows safe files mimetypes', () => {
+    expect(isMimetypeBlocked('image/png')).toBe(false);
+    expect(isMimetypeBlocked('image/jpeg')).toBe(false);
+    expect(isMimetypeBlocked('application/pdf')).toBe(false);
+    expect(isMimetypeBlocked('text/plain')).toBe(false);
   });
 });

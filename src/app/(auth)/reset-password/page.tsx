@@ -1,4 +1,5 @@
 import { ResetPasswordForm } from '@/components/auth/reset-password-form';
+import { Suspense } from 'react';
 
 export default function ResetPasswordPage() {
   return (
@@ -7,7 +8,9 @@ export default function ResetPasswordPage() {
         Reset your password
       </h2>
       <div className="mt-8">
-        <ResetPasswordForm />
+        <Suspense fallback={<div className="text-center py-4 text-sm text-gray-500">Loading...</div>}>
+          <ResetPasswordForm />
+        </Suspense>
       </div>
     </>
   );

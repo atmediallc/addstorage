@@ -104,17 +104,52 @@ export function useUpload() {
           folderId: item.folderId,
         });
 
-        const formData = new FormData();
-        formData.append('file', item.file);
+        const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks
+        const fileSize = item.file.size;
 
-        await uploadWithXhr(
-          `/api/upload/${createResult.uniqueId}`,
-          item.file,
-          (progress) => {
-            updateUpload(createResult.uniqueId.toString(), { progress });
-          },
-          formData,
-        );
+        if (fileSize > CHUNK_SIZE) {
+          const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+          const uploadSessionId = Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+
+          for (let i = 0; i < totalChunks; i++) {
+            const start = i * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, fileSize);
+            const blob = item.file.slice(start, end, item.file.type);
+            const chunkFile = new File([blob], `${item.file.name}.part`, { type: item.file.type });
+
+            const formData = new FormData();
+            formData.append('file', chunkFile);
+            formData.append('chunkIndex', String(i));
+            formData.append('totalChunks', String(totalChunks));
+            formData.append('uploadSessionId', uploadSessionId);
+
+            await uploadWithXhr(
+              `/api/upload/${createResult.uniqueId}`,
+              chunkFile,
+              (progress) => {
+                const currentChunkUploaded = (progress / 100) * blob.size;
+                const totalUploaded = start + currentChunkUploaded;
+                const overallProgress = Math.min(Math.round((totalUploaded / fileSize) * 100), 99);
+                updateUpload(createResult.uniqueId.toString(), { progress: overallProgress });
+              },
+              formData,
+            );
+          }
+          // The last chunk response completes the upload on the S3 proxy. Update status to done.
+          updateUpload(createResult.uniqueId.toString(), { progress: 100, status: 'done' });
+        } else {
+          const formData = new FormData();
+          formData.append('file', item.file);
+
+          await uploadWithXhr(
+            `/api/upload/${createResult.uniqueId}`,
+            item.file,
+            (progress) => {
+              updateUpload(createResult.uniqueId.toString(), { progress });
+            },
+            formData,
+          );
+        }
       }
     },
     [updateUpload, confirmUploadMutation, getPresignedUrlMutation, createFileMutation],

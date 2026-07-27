@@ -1,4 +1,5 @@
 import { LoginForm } from '@/components/auth/login-form';
+import { Suspense } from 'react';
 
 export default function LoginPage() {
   return (
@@ -7,7 +8,9 @@ export default function LoginPage() {
         Sign in to TutisCloud
       </h2>
       <div className="mt-8">
-        <LoginForm />
+        <Suspense fallback={<div className="text-center py-4 text-sm text-gray-500">Loading...</div>}>
+          <LoginForm />
+        </Suspense>
       </div>
     </>
   );

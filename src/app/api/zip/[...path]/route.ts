@@ -6,6 +6,7 @@ import { db } from '@/server/db';
 import { getS3Key } from '@/lib/s3';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/api-security';
+import { auth } from '@/server/auth';
 import archiver from 'archiver';
 import { PassThrough } from 'stream';
 
@@ -30,6 +31,11 @@ export async function GET(
     );
   }
 
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { path } = await params;
 
   // path format: [userId, ...fileIds]
@@ -45,6 +51,10 @@ export async function GET(
   const userId = parseInt(userIdStr, 10);
   if (isNaN(userId)) {
     return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
+  }
+
+  if (Number(session.user.id) !== userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // Get files to zip
