@@ -1,0 +1,192 @@
+
+=== src\app\(auth)\verify-email\page.tsx (1e) ===
+  L8:7 @next/next/no-html-link-for-pages: Do not use an `<a>` element to navigate to `/files/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/d
+
+=== src\app\(dashboard)\admin\settings\page.tsx (1e) ===
+  L18:19 react-hooks/set-state-in-effect: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchroniz
+
+=== src\app\(dashboard)\billing\invoices\page.tsx (1e) ===
+  L49:41 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\app\(dashboard)\billing\payment-methods\page.tsx (1e) ===
+  L52:35 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\app\(dashboard)\layout.tsx (1e) ===
+  L15:13 @next/next/no-html-link-for-pages: Do not use an `<a>` element to navigate to `/files/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/d
+
+=== src\app\api\avatars\[...path]\route.ts (1e) ===
+  L99:9 @typescript-eslint/no-unused-vars: 'session' is assigned a value but never used.
+
+=== src\app\api\health\route.ts (1e) ===
+  L13:12 @typescript-eslint/no-unused-vars: 'e' is defined but never used.
+
+=== src\app\api\images\[...path]\route.ts (2e) ===
+  L5:10 @typescript-eslint/no-unused-vars: 'db' is defined but never used.
+  L65:9 @typescript-eslint/no-unused-vars: 'filename' is assigned a value but never used.
+
+=== src\app\api\webhook\stripe\route.ts (18e) ===
+  L54:11 @typescript-eslint/no-unused-vars: 'itemStorage' is assigned a value but never used.
+  L96:56 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L107:45 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L110:57 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L117:56 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L127:57 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L133:56 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L143:57 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L149:56 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L168:57 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L173:55 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L178:62 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L186:52 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L191:59 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L200:49 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L205:64 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L231:17 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L265:17 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\app\contact\page.tsx (2e) ===
+  L7:10 @typescript-eslint/no-unused-vars: 'ArrowLeft' is defined but never used.
+  L59:71 react/no-unescaped-entities: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.
+
+=== src\app\invoices\[token]\page.tsx (1e) ===
+  L45:26 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\app\page.tsx (3e) ===
+  L3:10 @typescript-eslint/no-unused-vars: 'Suspense' is defined but never used.
+  L7:17 @typescript-eslint/no-unused-vars: 'Cloud' is defined but never used.
+  L7:48 @typescript-eslint/no-unused-vars: 'HardDrive' is defined but never used.
+
+=== src\app\s\[token]\page.tsx (1e) ===
+  L6:23 @typescript-eslint/no-unused-vars: 'Download' is defined but never used.
+
+=== src\components\admin\report-manager.tsx (1e) ===
+  L72:14 @typescript-eslint/no-unused-vars: 'err' is defined but never used.
+
+=== src\components\file-manager\FileItem.tsx (2e) ===
+  L23:11 @typescript-eslint/no-unused-vars: 'currentFolderId' is assigned a value but never used.
+  L23:48 @typescript-eslint/no-unused-vars: 'toggleSelect' is assigned a value but never used.
+
+=== src\components\file-manager\FileManager.tsx (1e) ===
+  L56:64 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\components\file-manager\FolderTree.tsx (1e) ===
+  L3:20 @typescript-eslint/no-unused-vars: 'useCallback' is defined but never used.
+
+=== src\components\file-manager\MoveDialog.tsx (5e) ===
+  L6:10 @typescript-eslint/no-unused-vars: 'useFileManager' is defined but never used.
+  L7:18 @typescript-eslint/no-unused-vars: 'ChevronRight' is defined but never used.
+  L7:32 @typescript-eslint/no-unused-vars: 'ArrowLeft' is defined but never used.
+  L16:59 @typescript-eslint/no-unused-vars: 'currentFolderId' is defined but never used. Allowed unused args must match /^_/u.
+  L20:20 @typescript-eslint/no-unused-vars: 'setParentId' is assigned a value but never used.
+
+=== src\components\file-manager\PreviewModal.tsx (7e) ===
+  L3:28 @typescript-eslint/no-unused-vars: 'useCallback' is defined but never used.
+  L4:33 @typescript-eslint/no-unused-vars: 'DialogHeader' is defined but never used.
+  L155:9 @next/next/no-img-element: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom 
+  L181:29 @typescript-eslint/no-unused-vars: 'name' is defined but never used. Allowed unused args must match /^_/u.
+  L186:10 @typescript-eslint/no-unused-vars: 'isFullscreen' is assigned a value but never used.
+  L186:24 @typescript-eslint/no-unused-vars: 'setIsFullscreen' is assigned a value but never used.
+  L263:28 @typescript-eslint/no-unused-vars: 'name' is defined but never used. Allowed unused args must match /^_/u.
+  L263:34 @typescript-eslint/no-unused-vars: 'mime' is defined but never used. Allowed unused args must match /^_/u.
+
+=== src\components\file-manager\RenameDialog.tsx (1e) ===
+  L26:7 react-hooks/set-state-in-effect: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchroniz
+
+=== src\components\file-manager\ShareDialog.tsx (2e) ===
+  L72:30 react/no-unescaped-entities: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+  L72:41 react/no-unescaped-entities: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.
+
+=== src\components\file-manager\use-upload.ts (2e) ===
+  L76:17 @typescript-eslint/no-unused-vars: 'getS3Key' is assigned a value but never used.
+  L76:27 @typescript-eslint/no-unused-vars: 'getPresignedUploadUrl' is assigned a value but never used.
+
+=== src\components\layout\header.tsx (1e) ===
+  L30:9 @next/next/no-html-link-for-pages: Do not use an `<a>` element to navigate to `/files/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/d
+  L66:17 @next/next/no-img-element: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom 
+
+=== src\components\theme-provider.tsx (2e) ===
+  L35:17 react-hooks/set-state-in-effect: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchroniz
+  L40:5 react-hooks/set-state-in-effect: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchroniz
+
+=== src\i18n\provider.tsx (6e) ===
+  L10:44 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L21:59 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L30:5 react-hooks/set-state-in-effect: Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchroniz
+  L31:5 react-hooks/immutability: Error: Cannot access variable before it is declared
+
+`loadLocaleMessages` is accessed before it is declared, which preve
+  L51:43 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L53:18 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\lib\__tests__\s3.test.ts (3e) ===
+  L1:32 @typescript-eslint/no-unused-vars: 'vi' is defined but never used.
+  L1:36 @typescript-eslint/no-unused-vars: 'beforeEach' is defined but never used.
+  L6:3 @typescript-eslint/no-unused-vars: 'deleteObject' is defined but never used.
+
+=== src\lib\email\templates\shared-link.tsx (1e) ===
+  L26:3 @typescript-eslint/no-unused-vars: 'appUrl' is assigned a value but never used. Allowed unused args must match /^_/u.
+
+=== src\lib\export.ts (1e) ===
+  L7:48 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\lib\stripe.ts (1e) ===
+  L9:37 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\server\api\routers\emojis.ts (1e) ===
+  L1:10 @typescript-eslint/no-unused-vars: 'z' is defined but never used.
+
+=== src\server\api\routers\files.ts (11e) ===
+  L15:24 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L59:24 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L89:24 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L118:24 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L147:24 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L182:21 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L251:21 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L287:21 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L377:21 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L435:26 @typescript-eslint/no-unused-vars: 'input' is defined but never used. Allowed unused args must match /^_/u.
+  L526:21 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+
+=== src\server\api\routers\search.ts (2e) ===
+  L1:10 @typescript-eslint/no-unused-vars: 'z' is defined but never used.
+  L3:10 @typescript-eslint/no-unused-vars: 'db' is defined but never used.
+
+=== src\server\auth\index.ts (2e) ===
+  L24:5 @typescript-eslint/no-unused-vars: 'token' is defined but never used. Allowed unused args must match /^_/u.
+  L36:7 @typescript-eslint/no-unused-vars: 'token' is defined but never used. Allowed unused args must match /^_/u.
+
+=== src\server\jobs\queue.ts (2e) ===
+  L4:17 @typescript-eslint/no-unused-vars: 'QueueEvents' is defined but never used.
+  L84:11 @typescript-eslint/no-unused-vars: 'getS3Key' is assigned a value but never used.
+
+=== src\server\trpc\routers\admin.ts (4e) ===
+  L648:35 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L649:35 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L650:29 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L677:15 @typescript-eslint/no-unused-vars: 'sendSharedLinkEmail' is assigned a value but never used.
+
+=== src\server\trpc\routers\billing.ts (2e) ===
+  L91:24 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L119:38 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\server\trpc\routers\notifications.ts (2e) ===
+  L99:7 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+  L113:7 @typescript-eslint/no-explicit-any: Unexpected any. Specify a different type.
+
+=== src\server\trpc\routers\user.ts (2e) ===
+  L47:24 @typescript-eslint/no-unused-vars: 'ctx' is defined but never used. Allowed unused args must match /^_/u.
+  L47:29 @typescript-eslint/no-unused-vars: 'input' is defined but never used. Allowed unused args must match /^_/u.
+
+=== tests\e2e\file-manager.spec.ts (1e) ===
+  L9:63 @typescript-eslint/no-unused-vars: 'page' is defined but never used. Allowed unused args must match /^_/u.

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://aka.ms/copilot-chat-schema",
+  "description": "Auto-format changed files after terminal commands",
+  "event": "PostToolUse",
+  "tool": "run_in_terminal",
+  "script": "scripts/hooks/post-terminal-format.sh"
+}
