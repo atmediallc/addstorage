@@ -292,6 +292,15 @@ export const adminRouter = router({
       return { success: true };
     }),
 
+  listTranslations: adminProcedure
+    .input(z.object({ languageId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.languageString.findMany({
+        where: { languageId: input.languageId },
+        orderBy: { key: 'asc' },
+      });
+    }),
+
   updateTranslation: adminProcedure
     .input(z.object({
       lang: z.string(),

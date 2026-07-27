@@ -55,3 +55,17 @@ export async function sendSharedLinkEmail(
     html,
   });
 }
+
+export async function sendContactEmail(
+  to: string,
+  senderName: string,
+  senderEmail: string,
+  message: string,
+): Promise<void> {
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `New Support Message from ${senderName}`,
+    text: `Name: ${senderName}\nEmail: ${senderEmail}\nMessage: ${message}`,
+  });
+}

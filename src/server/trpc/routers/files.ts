@@ -1026,4 +1026,41 @@ export const filesRouter = router({
     const { FOLDER_EMOJIS, FOLDER_COLORS } = await import('@/lib/emojis');
     return { emojis: FOLDER_EMOJIS, colors: FOLDER_COLORS };
   }),
+
+  getOgMetadata: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const share = await ctx.db.share.findUnique({
+        where: { token: input.token },
+        include: {
+          user: {
+            select: { name: true, avatar: true },
+          },
+          file: {
+            select: { name: true },
+          },
+          folder: {
+            select: { name: true },
+          },
+        },
+      });
+
+      if (!share) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Share not found' });
+      }
+
+      let itemName = '';
+      if (share.file) {
+        itemName = share.file.name || 'File';
+      } else if (share.folder) {
+        itemName = share.folder.name || 'Folder';
+      }
+
+      return {
+        title: `${share.user.name} shared ${itemName}`,
+        description: `View and download ${itemName} shared by ${share.user.name}`,
+        image: share.user.avatar || '/default-avatar.png',
+        url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/s/${share.token}`,
+      };
+    }),
 });

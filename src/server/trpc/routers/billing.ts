@@ -201,4 +201,20 @@ export const billingRouter = router({
     });
     return invoices;
   }),
+
+  getInvoicePdf: protectedProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const invoice = await ctx.db.invoice.findFirst({
+        where: {
+          token: input.token,
+          userId: Number(ctx.session.user.id),
+        },
+      });
+      if (!invoice) throw new TRPCError({ code: 'NOT_FOUND', message: 'Invoice not found' });
+
+      const { getPresignedDownloadUrl } = await import('@/lib/s3');
+      const url = await getPresignedDownloadUrl(`invoices/${invoice.token}.pdf`, 3600);
+      return { url };
+    }),
 });
