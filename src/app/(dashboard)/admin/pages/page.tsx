@@ -6,7 +6,6 @@ import { useToast } from '@/components/ui/toast';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function AdminPagesPage() {
-  const { toast } = useToast();
   const { data: pages, isLoading } = trpc.admin.listPages.useQuery();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
