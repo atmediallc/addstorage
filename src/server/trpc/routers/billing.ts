@@ -217,4 +217,21 @@ export const billingRouter = router({
       const url = await getPresignedDownloadUrl(`invoices/${invoice.token}.pdf`, 3600);
       return { url };
     }),
+
+  getInvoiceByToken: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const invoice = await ctx.db.invoice.findUnique({
+        where: { token: input.token },
+        include: {
+          user: {
+            select: { name: true, email: true },
+          },
+        },
+      });
+
+      if (!invoice) throw new TRPCError({ code: 'NOT_FOUND', message: 'Invoice not found' });
+
+      return invoice;
+    }),
 });
