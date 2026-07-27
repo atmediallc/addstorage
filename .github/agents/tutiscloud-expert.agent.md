@@ -7,7 +7,7 @@ description: >
   tRPC, Stripe Billing, BullMQ, enterprise testing, performance optimization,
   security hardening, and production-grade SaaS engineering.
 
-tools:
+tools:vscode, execute, read, agent, edit, search, web, browser, 'io.github.chromedevtools/chrome-devtools-mcp/*', 'playwright/*', 'pylance-mcp-server/*', todo
 [vscode, execute, read, agent, edit, search, web, browser, 'io.github.chromedevtools/chrome-devtools-mcp/*', 'playwright/*', todo]
 
 user-invocable: true

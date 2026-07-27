@@ -1,22 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { trpc } from '@/lib/trpc';
 import { useToast } from '@/components/ui/toast';
-import { Plus, Trash2, Search, Edit2, Check, RefreshCw, Globe, HelpCircle } from 'lucide-react';
-
-interface TranslationItem {
-  id?: number;
-  key: string;
-  value: string;
-}
+import { Plus, Trash2, Search, Edit2, Check, RefreshCw, Globe } from 'lucide-react';
 
 export default function AdminLanguagesPage() {
   const { toast } = useToast();
   const utils = trpc.useUtils();
 
   const { data: languages, isLoading: langsLoading } = trpc.admin.listLanguages.useQuery();
-  const [selectedLang, setSelectedLang] = useState<{ id: string; name: string; locale: string } | null>(null);
+  const [selectedLangId, setSelectedLangId] = useState<string | null>(null);
+
+  // Derive selectedLang from explicit selection or auto-pick (EN or first)
+  const selectedLang = useMemo(() => {
+    if (selectedLangId && languages) {
+      return languages.find((l) => l.id === selectedLangId) ?? null;
+    }
+    if (languages && languages.length > 0) {
+      return languages.find((l) => l.locale === 'en') || languages[0];
+    }
+    return null;
+  }, [selectedLangId, languages]);
 
   const { data: strings, isLoading: stringsLoading } = trpc.admin.listTranslations.useQuery(
     { languageId: selectedLang?.id ?? '' },
@@ -33,41 +38,26 @@ export default function AdminLanguagesPage() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
-  const [referenceStrings, setReferenceStrings] = useState<Record<string, string>>({});
-
-  // Select default language on load
-  useEffect(() => {
-    if (languages && languages.length > 0 && !selectedLang) {
-      const enRef = languages.find((l) => l.locale === 'en');
-      setSelectedLang(enRef || languages[0] || null);
-    }
-  }, [languages, selectedLang]);
-
-  // Load English reference translations dynamically from JSON keys as a baseline
-  useEffect(() => {
-    // English defaults baseline
-    const baseline: Record<string, string> = {
-      'common.loading': 'Loading...',
-      'common.error': 'Error',
-      'common.success': 'Success',
-      'common.save': 'Save',
-      'common.cancel': 'Cancel',
-      'common.delete': 'Delete',
-      'common.edit': 'Edit',
-      'common.create': 'Create',
-      'common.search': 'Search',
-      'preview.notAvailable': 'Preview not available for this file type.',
-      'preview.downloadToView': 'Download to view',
-      'preview.versionHistory': 'Version History',
-      'admin.dashboard': 'Dashboard',
-      'admin.users': 'Users',
-      'admin.settings': 'Settings',
-      'admin.languages': 'Languages',
-      'admin.pages': 'Pages',
-      'admin.totalUsers': 'Total Users',
-    };
-    setReferenceStrings(baseline);
-  }, []);
+  const [referenceStrings] = useState<Record<string, string>>({
+    'common.loading': 'Loading...',
+    'common.error': 'Error',
+    'common.success': 'Success',
+    'common.save': 'Save',
+    'common.cancel': 'Cancel',
+    'common.delete': 'Delete',
+    'common.edit': 'Edit',
+    'common.create': 'Create',
+    'common.search': 'Search',
+    'preview.notAvailable': 'Preview not available for this file type.',
+    'preview.downloadToView': 'Download to view',
+    'preview.versionHistory': 'Version History',
+    'admin.dashboard': 'Dashboard',
+    'admin.users': 'Users',
+    'admin.settings': 'Settings',
+    'admin.languages': 'Languages',
+    'admin.pages': 'Pages',
+    'admin.totalUsers': 'Total Users',
+  });
 
   const createLang = trpc.admin.createLanguage.useMutation({
     onSuccess: (res) => {
@@ -76,7 +66,7 @@ export default function AdminLanguagesPage() {
       setShowCreate(false);
       setName('');
       setLocale('');
-      if (res.language) setSelectedLang(res.language);
+      if (res.language) setSelectedLangId(res.language.id);
     },
     onError: (err) => toast(err.message, 'error'),
   });
@@ -85,7 +75,7 @@ export default function AdminLanguagesPage() {
     onSuccess: () => {
       toast('Language deleted successfully', 'success');
       utils.admin.listLanguages.invalidate();
-      setSelectedLang(null);
+      setSelectedLangId(null);
     },
     onError: (err) => toast(err.message, 'error'),
   });
@@ -192,7 +182,7 @@ export default function AdminLanguagesPage() {
               {languages?.map((lang) => (
                 <button
                   key={lang.id}
-                  onClick={() => setSelectedLang(lang)}
+                  onClick={() => setSelectedLangId(lang.id)}
                   className={`w-full flex items-center justify-between p-3.5 text-left text-sm font-medium transition-colors ${
                     selectedLang?.id === lang.id
                       ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
